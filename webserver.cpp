@@ -365,8 +365,8 @@ void getSysJSONData(String & response)
     if      (fp=='E') response += "Eco";
     else if (fp=='A') response += "Arrêt";
     else if (fp=='H') response += "Hors Gel";
-    else if (fp=='1') response += "Eco - 1";
-    else if (fp=='2') response += "Eco - 2";
+    else if (fp=='1') response += "Confort - 1";
+    else if (fp=='2') response += "Confort - 2";
     else if (fp=='C') response += "Confort";
     response += "\"},\r\n";
   }

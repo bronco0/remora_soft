@@ -30,6 +30,8 @@ div.zone .caption > div { margin-top: 10px;}
 @font-face {font-family: 'jeedom';src:url('/fonts/jeedom2.woff') format('woff');	font-weight: normal;	font-style: normal;}
 [class^="jeedom-"], [class*=" jeedom-"] {	font-family: 'jeedom';	speak: none;	font-style: normal;	font-weight: normal;	font-variant: normal;	text-transform: none;	line-height: 1;	-webkit-font-smoothing: antialiased;-moz-osx-font-smoothing: grayscale;}
 .jeedom-pilote-conf:before {content: "\e616";}
+.jeedom-pilote-conf1:before {content: "\e635";}
+.jeedom-pilote-conf2:before {content: "\e636";}
 .jeedom-pilote-eco:before {content: "\e617";}
 .jeedom-pilote-hg:before {content: "\e618";}
 .jeedom-pilote-off:before {content: "\e619";}

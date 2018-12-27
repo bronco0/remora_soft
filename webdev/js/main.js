@@ -66,12 +66,14 @@
   }
 
   function addZoneTemplate(id, zones) {
-    // console.log('addZoneTemplate ', id, zones);
+    //console.log('addZoneTemplate ', id, zones);
     var template = '<div class="col-sm-6 col-md-4 zone">'
            + '  <div style="min-height:80px;" class="thumbnail" data-zone="#zone#" title="Gestion de la zone #zone#">'
            + '    <div class="caption"><h5>Zone #zone#</h5><span class="icon iconCmd" style="font-size: 3.5em;"></span>'
            + '    <div>'
            + '      <a href="#" class="actions btn btn-default conf" role="button">Confort</a>'
+           + '      <a href="#" class="actions btn btn-default conf1" role="button">Confort -1</a>'
+           + '      <a href="#" class="actions btn btn-default conf2" role="button">Confort -2</a>'
            + '      <a href="#" class="actions btn btn-default eco" role="button">ECO</a>'
            + '      <a href="#" class="actions btn btn-default hg" role="button">hors gel</a>'
            + '      <a href="#" class="actions btn btn-default off" role="button">arrêt</a>'
@@ -79,11 +81,11 @@
            + '  </div>'
            + '</div>';
     template = template.replace(/#zone#/g, id.replace('fp', ''));
-    // console.log('template: ' + template);
-    // console.log('tab_fp .panel-body', $('#tab_fp .panel-body'));
+    //console.log('template: ' + template);
+    //console.log('tab_fp .panel-body', $('#tab_fp .panel-body'));
     $('#tab_fp .zones').append(template); // On ajoute la template dans le body du panel
     var $div = $('#tab_fp .zones div.zone:last');
-    // console.log('div.zone last', $div);
+    //console.log('div.zone last', $div);
     activeZone(id.replace('fp', ''), zones[id]); // On active le bon bouton et l'image associée
     // On ajoute le bind sur click sur les boutons
     $('.actions', $div).on('click', function(e) {
@@ -93,6 +95,10 @@
       zone = $this.parents('.thumbnail').data('zone');
       if ($this.hasClass('conf')) {
         sendOrdre(zone, 'C');
+      } else if ($this.hasClass('conf1')) {
+        sendOrdre(zone, '1');
+      } else if ($this.hasClass('conf2')) {
+        sendOrdre(zone, '2');
       } else if ($this.hasClass('eco')) {
         sendOrdre(zone, 'E');
       } else if ($this.hasClass('hg')) {
@@ -148,6 +154,14 @@
       case 'C':
         active = 'a.conf';
         img = 'jeedom-pilote-conf';
+      break;
+      case '1':
+        active = 'a.conf1';
+        img = 'jeedom-pilote-conf1';
+      break;
+      case '2':
+        active = 'a.conf2';
+        img = 'jeedom-pilote-conf2';
       break;
       case 'E':
         active = 'a.eco';
@@ -308,6 +322,10 @@
             var $this = $(this);
             if ($this.hasClass('conf')) {
               sendOrdre(false, 'C');
+            } else if ($this.hasClass('conf1')) {
+              sendOrdre(false, '1');
+            } else if ($this.hasClass('conf2')) {
+              sendOrdre(false, '2');
             } else if ($this.hasClass('eco')) {
               sendOrdre(false, 'E');
             } else if ($this.hasClass('hg')) {
