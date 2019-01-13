@@ -29,6 +29,11 @@
 #define CFG_PSK_SIZE  		64
 #define CFG_HOSTNAME_SIZE 16
 
+#define CFG_COMPTEUR_MODELE_SIZE 12
+#define CFG_COMPTEUR_TIC_SIZE    10
+#define CFG_COMPTEUR_DEFAULT_MODELE "electronique"
+#define CFG_COMPTEUR_DEFAULT_TIC    "historique"
+
 #define CFG_EMON_HOST_SIZE 		32
 #define CFG_EMON_APIKEY_SIZE 	32
 #define CFG_EMON_URL_SIZE 		32
@@ -71,6 +76,9 @@
 #define CFG_FORM_AP_PSK   FPSTR("ap_psk")
 #define CFG_FORM_OTA_AUTH FPSTR("ota_auth")
 #define CFG_FORM_OTA_PORT FPSTR("ota_port")
+
+#define CFG_FORM_COMPTEUR_MODELE FPSTR("compteur_modele")
+#define CFG_FORM_COMPTEUR_TIC    FPSTR("compteur_tic")
 
 #define CFG_FORM_EMON_HOST  FPSTR("emon_host")
 #define CFG_FORM_EMON_PORT  FPSTR("emon_port")
@@ -127,19 +135,21 @@ typedef struct
 // 1024 bytes total including CRC
 typedef struct
 {
-  char  ssid[CFG_SSID_SIZE+1]; 		 // SSID
-  char  psk[CFG_PSK_SIZE+1]; 		   // Pre shared key
-  char  host[CFG_HOSTNAME_SIZE+1]; // Hostname
-  char  ap_psk[CFG_PSK_SIZE+1];    // Access Point Pre shared key
-  char  ota_auth[CFG_PSK_SIZE+1];  // OTA Authentication password
-  uint32_t config;           		   // Bit field register
-  uint16_t ota_port;         		   // OTA port
-  uint8_t  led_bright;             // RGB Led brightness 0-255
-  uint16_t oled_type;              // Display OLED type (1306 or 1106)
-  uint8_t  filler[128];      		   // in case adding data in config avoiding loosing current conf by bad crc
-  _emoncms emoncms;                // Emoncms configuration
-  _jeedom  jeedom;                 // jeedom configuration
-  uint8_t  filler1[256];           // Another filler in case we need more
+  char ssid[CFG_SSID_SIZE+1]; 		                  // SSID
+  char psk[CFG_PSK_SIZE+1]; 		                    // Pre shared key
+  char host[CFG_HOSTNAME_SIZE+1];                   // Hostname
+  char ap_psk[CFG_PSK_SIZE+1];                      // Access Point Pre shared key
+  char ota_auth[CFG_PSK_SIZE+1];                    // OTA Authentication password
+  uint32_t config;           		                    // Bit field register
+  uint16_t ota_port;         		                    // OTA port
+  uint8_t  led_bright;                              // RGB Led brightness 0-255
+  uint16_t oled_type;                               // Display OLED type (1306 or 1106)
+  char compteur_modele[CFG_COMPTEUR_MODELE_SIZE+1]; // Modele de compteur
+  char compteur_tic[CFG_COMPTEUR_TIC_SIZE+1];       // TIC mode
+  uint8_t  filler[104];      		                    // in case adding data in config avoiding loosing current conf by bad crc
+  _emoncms emoncms;                                 // Emoncms configuration
+  _jeedom  jeedom;                                  // jeedom configuration
+  uint8_t  filler1[256];                            // Another filler in case we need more
   uint16_t crc;
 } _Config;
 

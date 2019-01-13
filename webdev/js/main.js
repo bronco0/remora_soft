@@ -287,6 +287,11 @@
                 ledBrightSlider.slider('refresh');
               });
             }
+            if (form_data.compteur_modele == 'linky') {
+              $('.compteur_tic').show();
+            } else {
+              $('.compteur_tic').hide();
+            }
           })
           .fail(function() { console.error( "error while requestiong configuration data" ); });
         $('#tab_scan_data').bootstrapTable('refresh',{silent:true, showLoading:true, url:'/wifiscan.json'});
@@ -427,6 +432,11 @@
           $('#jdom_finger').val('');
         }
 
+        // On force le mode TIC historique pour les compteurs électronique
+        if ($('#compteur_modele').val() != 'linky') {
+          $('#compteur_tic').val('historique');
+        }
+
         $.post('/config_form.json', $("#frm_config").serialize())
           .done( function(msg, textStatus, xhr) {
             Notify(2, 'ok', 'success', 'Enregistrement effectué', xhr.status+' '+msg);
@@ -524,6 +534,17 @@
     // Gestion du slider Brightness RGB
     //$("#cfg_led_bright")
     //.on('slideStop',function(){ wsSend('$rgbb:'+$('#cfg_led_bright').slider('getValue'));});
+
+    // Gestion du mode TIC
+    $('.compteur_tic').hide();
+    $('#compteur_modele').change(function() {
+      $('.compteur_tic').hide();
+      $("#compteur_modele option:selected" ).each(function() {
+        if ($(this).val() == 'linky') {
+          $('.compteur_tic').show();
+        }
+      });
+    });
 
     var url = document.location.toString(),
         full = location.protocol+'//'+location.hostname+(location.port ? ':'+location.port: '');
