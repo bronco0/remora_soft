@@ -2,7 +2,9 @@
 
 Le logiciel Remora_soft fonctionne sur les [cartes Remora](https://github.com/thibdct/programmateur-fil-pilote-wifi/).
 
-Cette version logicielle est compatible avec la version matérielle [1.2](https://github.com/thibdct/programmateur-fil-pilote-wifi/tree/master/Mat%C3%A9riel/1.2), [1.3](https://github.com/thibdct/programmateur-fil-pilote-wifi/tree/master/Mat%C3%A9riel/1.3) et [1.4][1]. Elle est compatible avec les cartes à base d'ESP8266 via un [adaptateur][5]
+Cette version logicielle est compatible avec la version matérielle [1.2](https://github.com/thibdct/programmateur-fil-pilote-wifi/tree/master/Mat%C3%A9riel/1.2), [1.3](https://github.com/thibdct/programmateur-fil-pilote-wifi/tree/master/Mat%C3%A9riel/1.3) et [1.4][1].
+
+Elle est compatible avec les cartes à base d'ESP8266 via un [adaptateur][5]
 
 ## Sommaire
 
@@ -31,6 +33,9 @@ Cette version logicielle est compatible avec la version matérielle [1.2](https:
          * [Système](#système-1)
          * [Relais](#relais-1)
          * [Fil pilote](#fil-pilote-1)
+   * [MQTT](#MQTT)
+      * [Topic d'information](#topic-d-information)
+      * [Topic de commande](#-opic-de-commande)
 * [A faire](#a-faire)
 * [Historiques des Modifications](#historiques-des-modifications)
 * [Exemple](#exemple)
@@ -91,7 +96,7 @@ Branchez un adaptateur USB TTL sur votre Wemos (*Adaptateur*: GND et RX => *Wemo
 
 En fonction de la carte que vous possédez, il vous faut définir la version dans le fichier [remora.h](https://github.com/AuFilElec/remora_soft/blob/platformio/src/remora.h).
 
-Variables: `REMORA_BOARD_V1X` allant de 1.0 à 1.4 actuellement.
+Variables: `REMORA_BOARD_V1X` allant de 1.2 à 1.4 actuellement.
 
 ### Les modules de la Remora
 
@@ -106,6 +111,9 @@ Pour activer un module, il vous suffit de décommenter la ligne du module dans l
 | MOD_OLED      | Module de l'afficheur OLED |
 | MOD_RF69      | Module radio avec les éléments RF69 (en cours de développement) |
 | MOD_RF_OREGON | Module radio des sondes Oregon (pas encore géré) |
+| MOD_EMONCMS   | Module de communication avec emoncms.org |
+| MOD_JEEDOM    | Module de communication avec Jeedom |
+| MOD_MQTT      | Module de communication via Mqtt |
 
 ## Utilisation
 
@@ -141,11 +149,11 @@ Toute requête sera donc adressée sous la forme
 Les différents états possibles de fil pilote dans l'API correspondent à la notation suivante, une lettre représente l'état lu ou le mode à positionner tel que :
 ```
 C = Confort
+1 = Confort -1
+2 = Confort -2
 A = Arrêt
 E = Eco
 H = Hors gel
-1 = Eco-1 (non géré pour le moment)
-2 = Eco-2 (non géré pour le moment)
 ```
 
 ##### Les Etats du mode de fonctionnement du relais
@@ -335,12 +343,57 @@ Il est aussi possible de forcer le relais jusqu'au prochain changement de pério
 		curl http://192.168.1.201/?fp=CCCCCCC
 		{ "response": 0 }
 ````
-  FP1 Eco, FP2 inchangé, FP3 confort, FP4 hors gel, FP5 arrêt, FP6 Eco-1, FP7 Eco-2
+  FP1 Eco, FP2 inchangé, FP3 confort, FP4 hors gel, FP5 arrêt, FP6 Confort -1, FP7 Confort -2
 ````shell
 		curl http://192.168.1.201/?fp=E-CHA12
 		{ "response": -1 }
 ````
-Erreur car les modes ECO-1 et ECO-1 ne sont pas gérés pour le moment.
+
+### MQTT
+#### Topic d'information
+##### LWT
+Message LWS pour gérer les deconnections/reconnections au broker.
+````
+topic : remora/online 
+payload : 1
+retain = true
+````
+##### Système
+Récupérer les information du système.
+````
+topic : remora/system
+paylod {"version": "2.0.0-beta", "board": "Remora v1.5", "ip": "192.168.1.31", "mac": "cd:cf:34:45:fc:4e", "rssi": "64", "freeheap": "2342", }
+retain = true
+````
+##### Téléinfo
+Récupérer la téléinfo, message envoyer lors de la réception d'une nouvelle trame.
+````
+topic : remora/teleinfo {"etat": "1", "adco": "03428067", "optarif": "HC", "isousc": "15", "hchc": "000261373", "hchp": "000132345", "ptec": "HC", etc...} | retain = false
+````
+##### Déléstage
+Récupérer les information de délestage.
+````
+topic : remora/delestage 
+payload : {"status": "1", "nb_zone": "0", "old_zone": "0"} | retain = false
+````
+##### Fils pilote
+````
+topic : remora/fp {"fp1": "C", "fp2": "H", "fp3": "H", "fp4": "H", "fp5": "C", "fp6": "H", "fp7": "E"} | retain = false
+topic : remora/fp {"fp1": "C"} | retain = false
+````
+##### Relais
+````
+topic : remora/relais {"mode": "0", "status": "2"} | retain = false
+````
+
+#### Topic de commande
+````
+remora/fp/get
+remora/fp/1/get 
+remora/fp/set {"fp1": "C", "fp2": "H", "fp3": "H", "fp4": "H", "fp5": "C", "fp6": "H", "fp7": "E"}
+remora/fp/set {"fp1": "C"}
+remora/relais/set {"mode": "0", "status": "2"}`
+````
 
 ## A faire
 
