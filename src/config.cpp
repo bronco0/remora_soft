@@ -9,9 +9,6 @@
 // This program works with the Remora board
 // see schematic here https://github.com/thibdct/programmateur-fil-pilote-wifi
 //
-// Written by Charles-Henri Hallard (http://hallard.me)
-//
-// History 2016-02-04 - First release
 //
 // All text above must be included in any redistribution.
 //
@@ -109,25 +106,17 @@ bool readConfig (bool clear_on_error)
     return false;
   }
 
-  // Check the config for new elements Compteur
-  if (config.compteur_modele[0] == '\0')
-    strcpy_P(config.compteur_modele, CFG_COMPTEUR_DEFAULT_MODELE);
-  if (config.compteur_tic[0] == '\0')
-    strcpy_P(config.compteur_tic, CFG_COMPTEUR_DEFAULT_TIC);
-
   // Check the config for new elements MQTT
-  #ifdef MOD_MQTT
-    if (config.mqtt.isActivated != true && config.mqtt.isActivated != false)
-      config.mqtt.isActivated = CFG_MQTT_DEFAULT_ACTIVATED;
-    if (config.mqtt.protocol[0] == '\0')
-      strcpy_P(config.mqtt.protocol, CFG_MQTT_DEFAULT_PROTOCOL);
-    if (config.mqtt.host[0] == '\0')
-      strcpy_P(config.mqtt.host, CFG_MQTT_DEFAULT_HOST);
-    if (config.mqtt.port == 0)
-      config.mqtt.port = CFG_MQTT_DEFAULT_PORT;
-    if (config.mqtt.hasAuth != true && config.mqtt.hasAuth != false)
-      config.mqtt.hasAuth = CFG_MQTT_DEFAULT_AUTH;
-  #endif
+  if (config.mqtt.isActivated != true && config.mqtt.isActivated != false)
+    config.mqtt.isActivated = CFG_MQTT_DEFAULT_ACTIVATED;
+  if (config.mqtt.protocol[0] == '\0')
+    strcpy_P(config.mqtt.protocol, CFG_MQTT_DEFAULT_PROTOCOL);
+  if (config.mqtt.host[0] == '\0')
+    strcpy_P(config.mqtt.host, CFG_MQTT_DEFAULT_HOST);
+  if (config.mqtt.port == 0)
+    config.mqtt.port = CFG_MQTT_DEFAULT_PORT;
+  if (config.mqtt.hasAuth != true && config.mqtt.hasAuth != false)
+    config.mqtt.hasAuth = CFG_MQTT_DEFAULT_AUTH;
 
   return true ;
 }
@@ -143,8 +132,6 @@ bool saveConfig (void)
 {
   uint8_t * pconfig ;
   bool ret_code;
-
-  //eepromDump(32);
 
   // Init pointer
   pconfig = (uint8_t *) &config ;
@@ -182,8 +169,6 @@ bool saveConfig (void)
     }
   #endif
 
-  //eepromDump(32);
-
   // return result
   return (ret_code);
 }
@@ -208,64 +193,18 @@ void showConfig()
   Log.verbose(config.ap_psk);
   Log.verbose(F("\r\nOTA auth : "));
   Log.verbose(config.ota_auth);
-  Log.verbose(F("\r\nOTA port : %d"), config.ota_port);
-  Log.verbose(F("\r\nConfig   : "));
-  if (config.config & CFG_RGB_LED) Log.verbose(F(" RGB"));
-  if (config.config & CFG_DEBUG)   Log.verbose(F(" DEBUG"));
-  if (config.config & CFG_LCD)     Log.verbose(F(" LCD\r\n"));
+  Log.verbose(F("\r\nOTA port : %d\r\n"), config.ota_port);
   _wdt_feed();
 
-  Log.verbose(F("\r\n===== Compteur =====\r\nModèle   : "));
-  Log.verbose(config.compteur_modele);
-  Log.verbose(F("\r\nTIC      : "));
-  Log.verbose(config.compteur_tic);
+  Log.verbose(F("\r\n===== MQTT =====\r\nIsActivated : %T\r\n"), config.mqtt.isActivated);
+  Log.verbose(F("host        : "));
+  Log.verbose(config.mqtt.host);
+  Log.verbose(F("\r\nport        : %d\r\nprotocol    : "), config.mqtt.port);
+  Log.verbose(config.mqtt.protocol);
+  Log.verbose(F("\r\nHasAuth     : %T\r\nuser        : "), config.mqtt.hasAuth);
+  Log.verbose(config.mqtt.user);
   Log.verbose("\r\n");
   _wdt_feed();
-
-  #ifdef MOD_EMONCMS
-    Log.verbose(F("\r\n===== Emoncms =====\r\nhost     : "));
-    Log.verbose(config.emoncms.host);
-    Log.verbose(F("\r\nport     : %d\r\nurl      : "), config.emoncms.port);
-    Log.verbose(config.emoncms.url);
-    Log.verbose(F("\r\nkey      : "));
-    Log.verbose(config.emoncms.apikey);
-    Log.verbose(F("\r\nnode     : %d\r\nreq     : %l\r\n"
-                 ), config.emoncms.node
-                  , config.emoncms.freq
-                );
-    _wdt_feed();
-  #endif
-
-  #ifdef MOD_JEEDOM
-    Log.verbose(F("\r\n===== Jeedom =====\r\nhost     : "));
-    Log.verbose(config.jeedom.host);
-    Log.verbose(F("port     : %d\r\nurl      : "), config.jeedom.port);
-    Log.verbose(config.jeedom.url);
-    Log.verbose(F("\r\nkey      : "));
-    Log.verbose(config.jeedom.apikey);
-    Log.verbose(F("\r\nfinger   : "));
-    for (int i=0; i < CFG_JDOM_FINGER_PRINT_SIZE; i++) {
-      Log.verbose("%x ", config.jeedom.fingerprint[i]);
-    }
-    Log.verbose(F("\r\ncompteur : "));
-    Log.verbose(config.jeedom.adco);
-    Log.verbose(F("\r\nfreq     : %l\r\n"), config.jeedom.freq);
-    _wdt_feed();
-  #endif
-
-  #ifdef MOD_MQTT
-    Log.verbose(F("\r\n===== MQTT =====\r\nIsActivated : %T\r\n"), config.mqtt.isActivated);
-    Log.verbose(F("host        : "));
-    Log.verbose(config.mqtt.host);
-    Log.verbose(F("\r\nport        : %d\r\nprotocol    : "), config.mqtt.port);
-    Log.verbose(config.mqtt.protocol);
-    Log.verbose(F("\r\nHasAuth     : %T\r\nuser        : "), config.mqtt.hasAuth);
-    Log.verbose(config.mqtt.user);
-    Log.verbose("\r\n");
-    _wdt_feed();
-  #endif
-
-  Log.verbose(F("\r\nLED Bright: %d\r\n"), config.led_bright);
 }
 #endif
 
@@ -282,67 +221,103 @@ void resetConfig(void)
   memset(&config, 0, sizeof(_Config));
 
   // Set default Hostname
-  sprintf_P(config.host, PSTR("Remora_%06X"), ESP.getChipId());
+  char hostname[40] = "";
+  char chipId[10] = "";
+  strcat_P(hostname, DEFAULT_HOSTNAME);
+  sprintf(chipId, PSTR("_%06X"), ESP.getChipId());
+  strcat(hostname, chipId);
+  //sprintf_P(config.host, PSTR("DEFAULT_HOSTNAME_%06X"), ESP.getChipId());
+  strcpy(config.host, hostname);
+
+  // WIfi
+  strcpy_P(config.ssid, DEFAULT_WIFI_SSID);
+  strcpy_P(config.psk, DEFAULT_WIFI_PASS);
+
+  // OTA
   strcpy_P(config.ota_auth, DEFAULT_OTA_AUTH);
   config.ota_port = DEFAULT_OTA_PORT ;
 
   // Add other init default config here
 
-  // Compteur
-  strcpy_P(config.compteur_modele, CFG_COMPTEUR_DEFAULT_MODELE);
-  strcpy_P(config.compteur_tic, CFG_COMPTEUR_DEFAULT_TIC);
-
-  // Emoncms
-  #ifdef MOD_EMONCMS
-    strcpy_P(config.emoncms.host, CFG_EMON_DEFAULT_HOST);
-    config.emoncms.port = CFG_EMON_DEFAULT_PORT;
-    strcpy_P(config.emoncms.url, CFG_EMON_DEFAULT_URL);
-    config.emoncms.apikey[0] = '\0';
-    config.emoncms.node = 0;
-    config.emoncms.freq = 0;
-  #endif
-
-  // Jeedom
-  #ifdef MOD_JEEDOM
-    strcpy_P(config.jeedom.host, CFG_JDOM_DEFAULT_HOST);
-    config.jeedom.port = CFG_JDOM_DEFAULT_PORT;
-    strcpy_P(config.jeedom.url, CFG_JDOM_DEFAULT_URL);
-    strcpy_P(config.jeedom.adco, CFG_JDOM_DEFAULT_ADCO);
-    config.jeedom.apikey[0] = '\0';
-    for (int i=0; i < CFG_JDOM_FINGER_PRINT_SIZE; i++) {
-      config.jeedom.fingerprint[i] = 0;
-    }
-    config.jeedom.freq = 0;
-  #endif
-
   // MQTT
-  #ifdef MOD_MQTT
-    config.mqtt.isActivated = CFG_MQTT_DEFAULT_ACTIVATED;
-    strcpy_P(config.mqtt.protocol, CFG_MQTT_DEFAULT_PROTOCOL);
-    strcpy_P(config.mqtt.host, CFG_MQTT_DEFAULT_HOST);
-    config.mqtt.port = CFG_MQTT_DEFAULT_PORT;
-    config.mqtt.hasAuth = CFG_MQTT_DEFAULT_AUTH;
-    strcpy_P(config.mqtt.user, "");
-    strcpy_P(config.mqtt.password, "");
-  #endif
-
-  config.led_bright = DEFAULT_LED_BRIGHTNESS;
-  config.config |= CFG_RGB_LED;
+  config.mqtt.isActivated = CFG_MQTT_DEFAULT_ACTIVATED;
+  strcpy_P(config.mqtt.protocol, CFG_MQTT_DEFAULT_PROTOCOL);
+  strcpy_P(config.mqtt.host, CFG_MQTT_DEFAULT_HOST);
+  config.mqtt.port = CFG_MQTT_DEFAULT_PORT;
+  config.mqtt.hasAuth = CFG_MQTT_DEFAULT_AUTH;
+  strcpy_P(config.mqtt.user, "");
+  strcpy_P(config.mqtt.password, "");
 
   // save back
   saveConfig();
 }
 
-#ifdef MOD_JEEDOM
-String getFingerPrint(void) {
-  char buffer[61] = { 0 };
+/* ======================================================================
+Function: getConfigJSONData
+Purpose : Return JSON string containing configuration data
+Input   : Response String
+Output  : -
+Comments: -
+====================================================================== */
+void getConfJSONData(String &response)
+{
+  const size_t capacity = JSON_OBJECT_SIZE(6) + JSON_OBJECT_SIZE(7) + 300;
+  StaticJsonDocument<capacity> doc;
 
-  sprintf_P(buffer, PSTR("%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X")
-    , config.jeedom.fingerprint[0], config.jeedom.fingerprint[1], config.jeedom.fingerprint[2], config.jeedom.fingerprint[3]
-    , config.jeedom.fingerprint[4], config.jeedom.fingerprint[5], config.jeedom.fingerprint[6], config.jeedom.fingerprint[7]
-    , config.jeedom.fingerprint[8], config.jeedom.fingerprint[9], config.jeedom.fingerprint[10], config.jeedom.fingerprint[11]
-    , config.jeedom.fingerprint[12], config.jeedom.fingerprint[13], config.jeedom.fingerprint[14], config.jeedom.fingerprint[15]
-    , config.jeedom.fingerprint[16], config.jeedom.fingerprint[17], config.jeedom.fingerprint[18], config.jeedom.fingerprint[19]);
-  return String(buffer);
+  doc["id"]       = config.id;
+  doc["hostname"] = config.host;
+  doc["ssid"]     = config.ssid;
+  doc["psk"]      = config.psk;
+  doc["ota_auth"] = config.ota_auth;
+  doc["ota_port"] = config.ota_port;
+
+  JsonObject mqtt = doc.createNestedObject("mqtt");
+  mqtt["host"]     = config.mqtt.host;
+  mqtt["port"]     = config.mqtt.port;
+  mqtt["protocol"] = config.mqtt.protocol;
+  mqtt["hasAuth"]  = config.mqtt.hasAuth;
+  mqtt["user"]     = config.mqtt.user;
+  mqtt["password"] = config.mqtt.password;
+
+  serializeJson(doc, response);
 }
-#endif
+
+/* ======================================================================
+Function: getSysJSONData
+Purpose : Return JSON string containing system data
+Input   : Response String
+Output  : -
+Comments: -
+====================================================================== */
+void getSysJSONData(String &response)
+{
+  const size_t capacity = JSON_OBJECT_SIZE(21) + 429;
+  StaticJsonDocument<capacity> doc;
+  char buffer[60];
+
+  doc["uptime"] = uptime;
+
+  doc["sdk_version"] = system_get_sdk_version();
+
+  sprintf_P(buffer, PSTR("0x%0X"), system_get_chip_id());
+  doc["chip_id"] = buffer;
+
+  sprintf_P(buffer, PSTR("0x%0X"), system_get_boot_version());
+  doc["boot_version"] = buffer;
+  
+  doc["cpu_freq"]        = system_get_cpu_freq();
+  doc["flash_real_size"] = ESP.getFlashChipRealSize();
+  doc["firmware_size"]   = ESP.getSketchSize();
+  doc["free_size"]       = ESP.getFreeSketchSpace();
+
+  doc["ip"]   = WiFi.localIP().toString();
+  doc["mac"]  = WiFi.macAddress();
+  doc["ssid"] = WiFi.SSID();
+  doc["rssi"] = WiFi.RSSI();
+
+  doc["free_ram"] = system_get_free_heap_size();
+  sprintf_P(buffer, PSTR("%.2f"), 100 - getLargestAvailableBlock() * 100.0 / getTotalAvailableMemory());
+  doc["heap_fragmentation"] = buffer;
+
+  serializeJson(doc, response);
+}
