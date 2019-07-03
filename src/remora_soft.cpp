@@ -109,47 +109,34 @@ int WifiHandleConn(boolean setup = false)
   if (setup) {
     // Feed the dog
     _wdt_feed();
-
-    #ifdef DEBUG
-      DebugF("========== SDK Saved parameters Start");
-      WiFi.printDiag(DEBUG_SERIAL);
-      DebuglnF("========== SDK Saved parameters End");
-    #endif
+    Log.verbose(F("========== SDK Saved parameters Start"));
+    WiFi.printDiag(DEBUG_SERIAL);
+    Log.verbose(F("========== SDK Saved parameters End\r\n"));
 
     #if defined (DEFAULT_WIFI_SSID) && defined (DEFAULT_WIFI_PASS)
-      #ifdef DEBUG
-        DebugF("Connection au Wifi : ");
-        Debug(DEFAULT_WIFI_SSID);
-        DebugF(" avec la clé '");
-        Debug(DEFAULT_WIFI_PASS);
-        DebugF("'...");
-        Debugflush();
-      #endif
+      Log.verbose(F("Connection au Wifi : "));
+      Log.verbose(F(DEFAULT_WIFI_SSID));
+      Log.verbose(F(" avec la clé '"));
+      Log.verbose(F(DEFAULT_WIFI_PASS));
+      Log.verbose(F("'...\r\n"));
+
       WiFi.begin(DEFAULT_WIFI_SSID, DEFAULT_WIFI_PASS);
     #else
       if (*config.ssid) {
-        #ifdef DEBUG
-          DebugF("Connection à: ");
-          Debug(config.ssid);
-          Debugflush();
-        #endif
+        Log.verbose(F("Connection à: "));
+        Log.verbose(config.ssid);
 
         // Do wa have a PSK ?
         if (*config.psk) {
           // protected network
-          #ifdef DEBUG
-            DebugF(" avec la clé '");
-            Debug(config.psk);
-            DebugF("'...");
-            Debugflush();
-          #endif
+          Log.verbose(F(" avec la clé '"));
+          Log.verbose(config.psk);
+          Log.verbose(F("'...\r\n"));
+
           WiFi.begin(config.ssid, config.psk);
         } else {
           // Open network
-          #ifdef DEBUG
-            DebugF("AP Ouvert");
-            Debugflush();
-          #endif
+          Log.verbose(F("AP Ouvert\r\n"));
           WiFi.begin(config.ssid);
         }
       }
@@ -166,6 +153,7 @@ int WifiHandleConn(boolean setup = false)
       LedRGBOFF();
       delay(150);
       --timeout;
+      _wdt_feed();
     }
 
     // connected ? disable AP, client mode only
@@ -173,28 +161,27 @@ int WifiHandleConn(boolean setup = false)
     {
       WiFi.mode(WIFI_STA);
 
-      #ifdef DEBUG
-        DebuglnF("connecte!");
-        DebugF("IP address   : "); Debugln(WiFi.localIP());
-        DebugF("MAC address  : "); Debugln(WiFi.macAddress());
-      #endif
+      Log.verbose(F("connecte!\r\n"));
+      Log.verbose(F("IP address   : "));
+      Log.verbose(WiFi.localIP().toString().c_str());
+      Log.verbose("\r\n");
+      Log.verbose(F("MAC address  : "));
+      Log.verbose(WiFi.macAddress().c_str());
+      Log.verbose("\r\n");
 
     // not connected ? start AP
     } else {
-      #ifdef DEBUG
-        DebugF("Erreur, passage en point d'acces ");
-        Debugln(DEFAULT_HOSTNAME);
+      Log.verbose(F("Erreur, passage en point d'acces "));
+      Log.verbose(F(DEFAULT_HOSTNAME));
 
-        // protected network
-        DebugF(" avec la clé '");
-        if (*config.ap_psk) {
-          Debug(config.ap_psk);
-        } else {
-          Debug(DEFAULT_WIFI_AP_PASS);
-        }
-        Debugln("'");
-        Debugflush();
-      #endif
+      // protected network
+      Log.verbose(F(" avec la clé '"));
+      if (*config.ap_psk) {
+        Log.verbose(config.ap_psk);
+      } else {
+        Log.verbose(F(DEFAULT_WIFI_AP_PASS));
+      }
+      Log.verbose(F("'\r\n"));
 
       if (*config.ap_psk) {
         WiFi.softAP(DEFAULT_HOSTNAME, config.ap_psk);
@@ -203,10 +190,12 @@ int WifiHandleConn(boolean setup = false)
       }
       WiFi.mode(WIFI_AP_STA);
 
-      #ifdef DEBUG
-        DebugF("IP address   : "); Debugln(WiFi.softAPIP());
-        DebugF("MAC address  : "); Debugln(WiFi.softAPmacAddress());
-      #endif
+      Log.verbose(F("IP address   : "));
+      Log.verbose(WiFi.softAPIP().toString().c_str());
+      Log.verbose("\r\n");
+      Log.verbose(F("MAC address  : "));
+      Log.verbose(WiFi.softAPmacAddress().c_str());
+      Log.verbose("\r\n");
     }
 
     // Feed the dog
@@ -248,16 +237,14 @@ void WifiReConn(void) {
 Function: onWifiStaConnect
 Purpose : Connect to MQTT brocker when WiFi STA is UP
 Input   : event
-Output  : 
+Output  :
 Comments: Fire when the WiFi Station get ip
 ====================================================================== */
 void onWifiStaConnect(const WiFiEventStationModeGotIP& event) {
-  #ifdef DEBUG
-    DebugF("Connecté au WiFi STA, IP : ");
-    Debugln(WiFi.localIP());
-  #endif
+  Log.notice(F("Connecté au WiFi STA, IP : "));
+  Log.notice(WiFi.localIP().toString().c_str());
   #ifdef MOD_MQTT
-    if (config.mqtt.isActivated && !mqttClient.connected() && !first_setup) 
+    if (config.mqtt.isActivated && !mqttClient.connected() && !first_setup)
       connectToMqtt();
   #endif
 }
@@ -266,13 +253,11 @@ void onWifiStaConnect(const WiFiEventStationModeGotIP& event) {
 Function: onWifiStaDisconnect
 Purpose : Suspend connection to MQTT brocker and reconnect the WiFi STA.
 Input   : event
-Output  : 
+Output  :
 Comments: Fire when the WiFi Station is disconnected
 ====================================================================== */
 void onWifiStaDisconnect(const WiFiEventStationModeDisconnected& event) {
-  #ifdef DEBUG
-    DebuglnF("Déconecté du WiFi.");
-  #endif
+  Log.error(F("Déconecté du WiFi.\r\n"));
   wifiReconnectTimer.once(2, WifiReConn);
 }
 
@@ -346,12 +331,12 @@ Comments: -
 ====================================================================== */
 void setup()
 {
-  #if defined DEBUG && (defined DEBUG_INIT || !defined MOD_TELEINFO)
+  #if (defined DEBUG_INIT || !defined MOD_TELEINFO)
     DEBUG_SERIAL.begin(115200);
     DEBUG_SERIAL.setDebugOutput(true);
   #endif
 
-  Log.begin(LOG_LEVEL, &DEBUG_SERIAL, true);
+  Log.begin(LOG_LEVEL, &DEBUG_SERIAL, false);
   //Log.setPrefix(printTimestamp); // Uncomment to get timestamps as prefix
   //Log.setSuffix(printNewline); // Uncomment to get newline as suffix
 
@@ -359,10 +344,9 @@ void setup()
   first_setup = true;
 
   Log.notice(F("Starting Remora\r\n"));
-  Log.verbose(F(" Version %s\r\n"
-                "Compiled with : "
-               ), REMORA_SOFT_VERSION
-              );
+  Log.verbose(F(" Version "));
+  Log.verbose(F(REMORA_SOFT_VERSION));
+  Log.verbose(F("\r\nCompiled with : "));
 
   #if defined (REMORA_BOARD_V12)
     Log.verbose(F("BOARD V1.2 MCP23017 "));
@@ -373,9 +357,9 @@ void setup()
   #elif defined (REMORA_BOARD_V15)
     Log.verbose(F("BOARD V1.5 MCP23017 "));
   #else
-      DebugF("BOARD unknow");
+    Log.verbose(F("BOARD unknow "));
   #endif
-  
+
   #ifdef MOD_OLED
     Log.verbose(F("OLED "));
   #endif
@@ -437,7 +421,7 @@ void mysetup()
   #ifdef MOD_MQTT
     Log.verbose(F(" - mqtt = %l\r\n"), sizeof(_mqtt));
   #endif
-  
+
 
   // Check File system init
   if (SPIFFS.begin()) {
@@ -446,12 +430,14 @@ void mysetup()
   }
   else {
     Log.notice(F("SPIFFS Mount succesfull\r\n"));
-  
+
     Dir dir = SPIFFS.openDir("/");
     while (dir.next()) {
       String fileName = dir.fileName();
       size_t fileSize = dir.fileSize();
-      Log.verbose(F("FS File: %s, size: %d\r\n"), fileName.c_str(), fileSize);
+      Log.verbose(F("FS File: "));
+      Log.verbose(fileName.c_str());
+      Log.verbose(F("size: %l\r\n"), fileSize);
       _wdt_feed();
     }
   }
@@ -477,7 +463,7 @@ void mysetup()
   #ifndef DISABLE_LOGGING
     showConfig();
   #endif
-  
+
   rgb_brightness = config.led_bright;
   Log.verbose(F("RGB Brightness : %d\r\n"), rgb_brightness);
 
@@ -500,7 +486,7 @@ void mysetup()
   #endif
 
   // Connection au Wifi ou Vérification
-  wifi_station_set_hostname(config.host); 
+  wifi_station_set_hostname(config.host);
   WifiHandleConn(true);
 
   // OTA callbacks
@@ -510,7 +496,7 @@ void mysetup()
       SPIFFS.end(); // Arret du SPIFFS, sinon plantage de la mise à jour
     }
     LedRGBON(COLOR_MAGENTA);
-    
+
     Log.notice(F("\r\nUpdate Started...\r\n"));
 
     // On affiche le début de la mise à jour OTA sur l'afficheur
@@ -529,7 +515,7 @@ void mysetup()
 
   ArduinoOTA.onEnd([]() {
     LedRGBOFF();
-    
+
     Log.notice(F("\r\nUpdate finished restarting\r\n"));
 
     // On affiche le message de fin sur l'afficheur
@@ -571,11 +557,6 @@ void mysetup()
 
     LedRGBON(COLOR_RED);
 
-    #ifdef DEBUG
-    
-      DEBUG_SERIAL.printf_P(PSTR("Update Error[%u]: "), error);
-    #endif
-
     switch (error) {
       case OTA_AUTH_ERROR: sprintf_P(strErr, PSTR("Auth Failed")); break;
       case OTA_BEGIN_ERROR: sprintf_P(strErr, PSTR("Begin Failed")); break;
@@ -584,7 +565,9 @@ void mysetup()
       case OTA_END_ERROR: sprintf_P(strErr, PSTR("End Failed")); break;
       default: sprintf_P(strErr, PSTR("Unknown Error")); break;
     }
-    Log.error(F("Update Error[%u] : %s"), error, strErr);
+    Log.error(F("Update Error[%u] : "), error);
+    Log.error(strErr);
+    Log.error("\r\n");
 
     // On affiche l'erreur sur l'afficheur
     #ifdef MOD_OLED
@@ -608,7 +591,7 @@ void mysetup()
     StaticJsonDocument<capacity> doc;
     doc["uptime"] = uptime;
     serializeJson(doc, response);
-    request->send(200, F("text/json"), response);
+    request->send(200, "text/json", response);
   });
 
   server.on(PSTR("/config_form.json"), HTTP_POST, handleFormConfig);
@@ -623,7 +606,7 @@ void mysetup()
 
   // handler for the hearbeat
   server.on(PSTR("/hb.htm"), HTTP_GET, [](AsyncWebServerRequest *request) {
-    AsyncWebServerResponse *response = request->beginResponse(200, F("text/html"), F(R"(OK)"));
+    AsyncWebServerResponse *response = request->beginResponse(200, "text/html", R"(OK)");
     response->addHeader(F("Connection"), F("close"));
     response->addHeader(F("Access-Control-Allow-Origin"), F("*"));
     request->send(response);
@@ -632,8 +615,8 @@ void mysetup()
   // handler for the /update form POST (once file upload finishes)
   server.on(PSTR("/update"), HTTP_POST, [](AsyncWebServerRequest *request) {
     reboot = !Update.hasError();
-    AsyncWebServerResponse *response = request->beginResponse(200, F("text/plain"), reboot ? F("OK") : F("FAIL"));
-    response->addHeader(F("Connection"),F("close"));
+    AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", reboot ? "OK" : "FAIL");
+    response->addHeader("Connection","close");
     request->send(response);
   }, handle_fw_upload);
 
@@ -721,8 +704,8 @@ void mysetup()
   LedRGBOFF();
 
   #ifdef MOD_MQTT
-  // On peut maintenant initialiser MQTT et subscribe au MQTT_TOPIC_SET
-  connectToMqtt();
+    // On peut maintenant initialiser MQTT et subscribe au MQTT_TOPIC_SET
+    connectToMqtt();
   #endif
 
   Log.notice(F("\nStarting main loop\r\n"));
@@ -804,7 +787,7 @@ void loop()
 
   // recupération de l'état de connexion au Wifi
   currentcloudstate = WiFi.status() == WL_CONNECTED ? true : false;
- 
+
   // La connexion cloud vient de chager d'état ?
   if (lastcloudstate != currentcloudstate)
   {

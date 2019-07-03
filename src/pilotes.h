@@ -58,6 +58,9 @@
 
 #define _pinMode(p,v) mcp.pinMode(p,v)
 
+#define FNCT_RELAIS_ARRET 0 // Mode arrêt du relais
+#define FNCT_RELAIS_FORCE 1 // Mode marche forcée du relais
+#define FNCT_RELAIS_AUTO 2  // Mode auto du relais
 
 // Variables exported to other source file
 // ========================================
@@ -68,6 +71,8 @@ extern char etatFP[];
 extern uint8_t nivDelest;
 extern uint8_t plusAncienneZoneDelestee;
 extern unsigned long timerDelestRelest;
+extern int etatrelais;
+extern int fnctRelais;   // Mode de fonctionnement du relais (0: arrêt, 1: marche forcée, 2: auto)
 
 // Function exported for other source file
 // =======================================

@@ -22,6 +22,8 @@
 
 char etatFP[NB_FILS_PILOTES+1] = "";
 char memFP[NB_FILS_PILOTES+1] = ""; //Commandes des fils pilotes mémorisées (utile pour le délestage/relestage)
+int etatrelais = 0; // Etat du relais
+int fnctRelais = 2; // Mode de fonctionnement du relais
 #ifdef MOD_ADPS
   uint8_t nivDelest = 0; // Niveau de délestage actuel (par défaut = 0 pas de délestage)
   uint8_t plusAncienneZoneDelestee = 1; // Numéro de la zone qui est délestée depuis le plus de temps (entre 1 et nombre de zones)
@@ -44,12 +46,12 @@ Purpose : Callback pour les Ticker
 Input   : 0, 1 ou 2
           0 => réinitialisation, fin des 5m
           1 => Confort -1, 3s
-          2 => Confort -2, 7s 
-Output  : 
+          2 => Confort -2, 7s
+Output  :
 Comments:
 ====================================================================== */
 void conf12(char state)
-{ 
+{
   char cOrdre;
 
   if (state == '0') {
@@ -61,7 +63,7 @@ void conf12(char state)
 
     cOrdre = 'Z';
   }
-  else { 
+  else {
     cOrdre = 'O';
   }
 
@@ -127,7 +129,7 @@ int setfp(String command)
         returnValue = setfp_interne(fp, cOrdre);
       }
     }
-    else {    
+    else {
       // erreur
       Log.error(F("Argument incorrect : %c\r\n"), cOrdre);
     }
@@ -161,7 +163,7 @@ int setfp(String command)
             }
           }
         }
-        else {    
+        else {
           // erreur
           Log.error(F("Argument incorrect : %c\r\n"), cOrdre);
         }
@@ -411,7 +413,7 @@ int relais(String command)
   #ifdef LED_PIN
     _digitalWrite(LED_PIN, etatrelais);
   #endif
-    
+
   #ifdef MOD_MQTT
     mqttRelaisPublish();
   #endif
@@ -496,7 +498,7 @@ Comments: -
 bool pilotes_setup(void)
 {
   Log.notice(F("Initializing MCP23017...Searching..."));
-  
+
   // Détection du MCP23017
   if (!i2c_detect(MCP23017_ADDRESS))
   {

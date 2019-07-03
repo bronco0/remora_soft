@@ -166,12 +166,7 @@ bool rfm_setup(void)
   }
   else {
     Log.notice(F("Not found!\r\n"));
-
   }
-
-    Debugflush();
-  #endif
-
   return (ret);
 }
 
@@ -187,9 +182,7 @@ void rfm_loop(void)
   got_first = false;
   //static unsigned long packet_last_seen=0;// second since last packet received
   uint8_t packetReceived = 0;
-  #ifdef DEBUG
-    unsigned long node_last_seen;  // Second since we saw this node
-  #endif
+  unsigned long node_last_seen;  // Second since we saw this node
 
   // Data received from driver ?
   if (driver.available()) {
@@ -203,7 +196,6 @@ void rfm_loop(void)
   if (packetReceived) {
     // command code
     uint8_t cmd = rfData.buffer[0];
-    #ifdef DEBUG
     unsigned long seen = uptime-node_last_seen;
 
     // Dump Raw packet
@@ -243,17 +235,17 @@ void rfm_loop(void)
       ppl->vbat = 0;
       ppl->rssi = rfData.rssi; // RSSI of node
       ppl->status = 0;
- 
+
       driver.setHeaderId(rfData.seqid);
       driver.setHeaderFlags(RH_FLAGS_NONE);
- 
+
       // We're on a fast gateway, let node some time
       // To node to set to receive mode before sending response
       delay(2);
       driver.setHeaderTo(rfData.nodeid);
       driver.send((uint8_t *) ppl, (uint8_t) sizeof(RFPingPayload)) ;
       driver.waitPacketSent();
- 
+
       // Start line with a # (comment)
       // indicate external parser that it's just debug information
       Log.verbose(F("\r\n# -> %d PINGBACK (%ddB)"), rfData.nodeid, ppl->rssi);
@@ -264,11 +256,10 @@ void rfm_loop(void)
     rf_rgb_led_timer=millis();
 
     // known Payload ? send frame to serial
-    #ifdef DEBUG
-      if (cmd) {
-        Debugln(json_str);
-      }
-    #endif
+    if (cmd) {
+      Log.verbose(json_str);
+      Log.verbose("\r\n");
+    }
 
 
     // Display Results only if something new received

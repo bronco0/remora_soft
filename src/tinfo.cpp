@@ -34,10 +34,7 @@ float ratio_delestage = DELESTAGE_RATIO;
 float ratio_relestage = RELESTAGE_RATIO;
 float myDelestLimit   = 0.0;
 float myRelestLimit   = 0.0;
-int etatrelais        = 0; // Etat du relais
-int fnctRelais        = 2; // Mode de fonctionnement du relais
 int lastPtec          = PTEC_HP;
-
 unsigned long tinfo_led_timer = 0; // Led blink timer
 unsigned long tinfo_last_frame = 0; // dernière fois qu'on a recu une trame valide
 
@@ -63,7 +60,7 @@ void ADPSCallback(uint8_t phase)
   tinfo_led_timer = millis();
 
   // Monophasé
-  
+
   if (phase == 0 ) {
     Log.verbose(F("ADPS\r\n"));
   } else {
@@ -131,7 +128,7 @@ void DataCallback(ValueList * me, uint8_t flags)
 
   // Mise à jour des variables
   if (!strcmp_P(me->name, PSTR("OPTARIF"))) strcpy(myOptarif, me->value);
-  
+
   if (!strcmp_P(me->name, PSTR("PAPP")))    mypApp     = atoi(me->value);
   if (!strcmp_P(me->name, PSTR("IINST")))   myiInst    = atoi(me->value);
 
@@ -181,7 +178,7 @@ void NewFrame(ValueList * me)
   // Light the RGB LED
   LedRGBON(COLOR_GREEN);
   tinfo_led_timer = millis();
-  
+
   //char buff[32];
   //sprintf( buff, "New Frame (%ld Bytes free)", ESP.getFreeHeap() );
   //Debugln(buff);
@@ -204,11 +201,11 @@ void UpdatedFrame(ValueList * me)
   // Light the RGB LED (orange) and set timer
   LedRGBON(COLOR_ORANGE);
   tinfo_led_timer = millis();
-  
+
   //char buff[32];
   //sprintf( buff, "Updated Frame (%ld Bytes free)", ESP.getFreeHeap() );
   //Debugln(buff);
-  
+
   //On publie toutes les infos teleinfos dans un seul appel :
   //sprintf(mytinfo,"{\"papp\":%u,\"iinst\":%u,\"isousc\":%u,\"ptec\":%u,\"indexHP\":%u,\"indexHC\":%u,\"imax\":%u,\"ADCO\":%s}",
   //                  mypApp,myiInst,myisousc,ptec,myindexHP,myindexHC,myimax,mycompteur);
@@ -232,13 +229,13 @@ Comments: -
 void  getTinfoListJson(String &response)
 {
   ValueList * me = tinfo.getList();
-  const size_t capacity = JSON_OBJECT_SIZE(22);
+  const size_t capacity = JSON_OBJECT_SIZE(16) + 230;
   StaticJsonDocument<capacity> doc;
 
    // Got at least one ?
   if (me) {
     char * p;
-    
+
     // Loop thru the node
     while (me->next) {
       // go to next node
@@ -258,6 +255,11 @@ void  getTinfoListJson(String &response)
       } else {
         doc[me->name] = F("Error");
       }
+      ESP.wdtFeed();
+    }
+
+    if (!doc.isNull())  {
+      serializeJson(doc, response);
     }
   }
   else {
@@ -272,8 +274,7 @@ Input   : indique si on doit bloquer jusqu'à reception ligne téléinfo
 Output  : false si on devait attendre et time out expiré, true sinon
 Comments: -
 ====================================================================== */
-bool tinfo_setup(bool wait_data)
-{
+bool tinfo_setup(bool wait_data) {
   bool ret = false;
 
   Log.notice(F("Initializing Teleinfo..."));
@@ -344,19 +345,19 @@ void tinfo_loop(void)
     if ( millis()-tinfo_last_frame>TINFO_FRAME_TIMEOUT*1000) {
       // Indiquer qu'elle n'est pas présente
       status &= ~STATUS_TINFO;
-      Log.error(F("Teleinfo absente/perdue!"));
+      Log.error(F("Teleinfo absente/perdue!\r\n"));
     }
 
   // Nous n'avions plus de téléinfo
   } else  {
     // est ce que cela fait un moment qu'on a pas recu de data
-    if ( millis()-tinfo_last_frame>TINFO_DATA_TIMEOUT*1000) {
+    if ( millis()-tinfo_last_frame > TINFO_DATA_TIMEOUT*1000) {
       // Light the RGB LED (RED) and set timer with
       // 500ms more than classic blink
       LedRGBON(COLOR_RED);
       tinfo_last_frame = millis();
       tinfo_led_timer = millis();
-      Log.error(F("Teleinfo toujours absente!"));
+      Log.verbose(F("Teleinfo toujours absente!\r\n"));
     }
   }
 

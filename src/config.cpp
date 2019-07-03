@@ -38,8 +38,8 @@ uint16_t crc16Update(uint16_t crc, uint8_t a)
 /* ======================================================================
 Function: eeprom_dump
 Purpose : dump eeprom value to serial
-Input 	: -
-Output	: -
+Input   : -
+Output  : -
 Comments: -
 ====================================================================== */
 #ifdef DEBUG
@@ -58,7 +58,7 @@ void eepromDump(uint8_t bytesPerRow)
   for (i = 0; i < sizeof(_Config); i++) {
     // First byte of the row ?
     if (j==0) {
-			// Display Address
+      // Display Address
       Log.verbose(F("%04X : "), i);
     }
 
@@ -66,12 +66,12 @@ void eepromDump(uint8_t bytesPerRow)
     Log.verbose(F("%04X : "), EEPROM.read(i));
     Debugf("%02X ", EEPROM.read(i));
 
-		// Last byte of the row ?
+    // Last byte of the row ?
     // start a new line
     if (++j >= bytesPerRow) {
-			j=0;
+      j=0;
       Log.verbose("\r\n");
-		}
+    }
   }
 }
 #endif
@@ -79,35 +79,35 @@ void eepromDump(uint8_t bytesPerRow)
 /* ======================================================================
 Function: readConfig
 Purpose : fill config structure with data located into eeprom
-Input 	: true if we need to clear actual struc in case of error
-Output	: true if config found and crc ok, false otherwise
+Input   : true if we need to clear actual struc in case of error
+Output  : true if config found and crc ok, false otherwise
 Comments: -
 ====================================================================== */
 bool readConfig (bool clear_on_error)
 {
-	uint16_t crc = ~0;
-	uint8_t * pconfig = (uint8_t *) &config ;
-	uint8_t data ;
+  uint16_t crc = ~0;
+  uint8_t * pconfig = (uint8_t *) &config ;
+  uint8_t data ;
 
-	// For whole size of config structure
-	for (uint16_t i = 0; i < sizeof(_Config); ++i) {
-		// read data
-		data = EEPROM.read(i);
+  // For whole size of config structure
+  for (uint16_t i = 0; i < sizeof(_Config); ++i) {
+    // read data
+    data = EEPROM.read(i);
 
-		// save into struct
-		*pconfig++ = data ;
+    // save into struct
+    *pconfig++ = data ;
 
-		// calc CRC
-		crc = crc16Update(crc, data);
-	}
+    // calc CRC
+    crc = crc16Update(crc, data);
+  }
 
-	// CRC Error ?
-	if (crc != 0) {
-		// Clear config if wanted
+  // CRC Error ?
+  if (crc != 0) {
+    // Clear config if wanted
     if (clear_on_error)
-		  memset(&config, 0, sizeof( _Config ));
-		return false;
-	}
+      memset(&config, 0, sizeof( _Config ));
+    return false;
+  }
 
   // Check the config for new elements Compteur
   if (config.compteur_modele[0] == '\0')
@@ -129,14 +129,14 @@ bool readConfig (bool clear_on_error)
       config.mqtt.hasAuth = CFG_MQTT_DEFAULT_AUTH;
   #endif
 
-	return true ;
+  return true ;
 }
 
 /* ======================================================================
 Function: saveConfig
 Purpose : save config structure values into eeprom
-Input 	: -
-Output	: true if saved and readback ok
+Input   : -
+Output  : true if saved and readback ok
 Comments: once saved, config is read again to check the CRC
 ====================================================================== */
 bool saveConfig (void)
@@ -149,15 +149,15 @@ bool saveConfig (void)
   // Init pointer
   pconfig = (uint8_t *) &config ;
 
-	// Init CRC
+  // Init CRC
   config.crc = ~0;
 
-	// For whole size of config structure, pre-calculate CRC
+  // For whole size of config structure, pre-calculate CRC
   for (uint16_t i = 0; i < sizeof (_Config) - 2; ++i) {
     config.crc = crc16Update(config.crc, *pconfig++);
   }
 
-	// Re init pointer
+  // Re init pointer
   pconfig = (uint8_t *) &config ;
 
   // For whole size of config structure, write to EEP
@@ -191,102 +191,81 @@ bool saveConfig (void)
 /* ======================================================================
 Function: showConfig
 Purpose : display configuration
-Input 	: -
-Output	: -
+Input   : -
+Output  : -
 Comments: -
 ====================================================================== */
 #ifndef DISABLE_LOGGING
 void showConfig()
 {
-  Log.verbose(F("===== Wifi =====\r\n"
-                "ssid     : %s\r\n"
-                "psk      : %s\r\n"
-                "host     : %s\r\n"
-                "ap_psk   : %s\r\n"
-                "OTA auth : %s\r\n"
-                "OTA port : %s\r\n"
-                "Config   : "
-               ), config.ssid
-                , config.psk
-                , config.host
-                , config.ap_psk
-                , config.ota_auth
-                , config.ota_port
-              );
+  Log.verbose(F("===== Wifi =====\r\nssid     : "));
+  Log.verbose(config.ssid);
+  Log.verbose(F("\r\npsk      : "));
+  Log.verbose(config.psk);
+  Log.verbose(F("\r\nhost     : "));
+  Log.verbose(config.host);
+  Log.verbose(F("\r\nap_psk   : "));
+  Log.verbose(config.ap_psk);
+  Log.verbose(F("\r\nOTA auth : "));
+  Log.verbose(config.ota_auth);
+  Log.verbose(F("\r\nOTA port : %d"), config.ota_port);
+  Log.verbose(F("\r\nConfig   : "));
   if (config.config & CFG_RGB_LED) Log.verbose(F(" RGB"));
   if (config.config & CFG_DEBUG)   Log.verbose(F(" DEBUG"));
   if (config.config & CFG_LCD)     Log.verbose(F(" LCD\r\n"));
   _wdt_feed();
 
-  Log.verbose(F("\r\n===== Compteur =====\r\n"
-                "Modèle   : %s\r\n"
-                "TIC      : %s\r\n"
-               ),config.compteur_modele
-                ,config.compteur_tic
-              );
+  Log.verbose(F("\r\n===== Compteur =====\r\nModèle   : "));
+  Log.verbose(config.compteur_modele);
+  Log.verbose(F("\r\nTIC      : "));
+  Log.verbose(config.compteur_tic);
+  Log.verbose("\r\n");
   _wdt_feed();
 
   #ifdef MOD_EMONCMS
-    Log.verbose(F("\r\n===== Emoncms\r\n"
-                  "host     : %s\r\n"
-                  "port     : %d\r\n"
-                  "url      : %s\r\n"
-                  "key      : %s\r\n"
-                  "node     : %d\r\n"
-                  "freq     : %l\r\n"
-                 ), config.emoncms.host
-                  , config.emoncms.port
-                  , config.emoncms.url
-                  , config.emoncms.apikey
-                  , config.emoncms.node
+    Log.verbose(F("\r\n===== Emoncms =====\r\nhost     : "));
+    Log.verbose(config.emoncms.host);
+    Log.verbose(F("\r\nport     : %d\r\nurl      : "), config.emoncms.port);
+    Log.verbose(config.emoncms.url);
+    Log.verbose(F("\r\nkey      : "));
+    Log.verbose(config.emoncms.apikey);
+    Log.verbose(F("\r\nnode     : %d\r\nreq     : %l\r\n"
+                 ), config.emoncms.node
                   , config.emoncms.freq
                 );
     _wdt_feed();
   #endif
 
   #ifdef MOD_JEEDOM
-    Log.verbose(F("\r\n===== Jeedom =====\r\n"
-                  "host     : %s\r\n"
-                  "port     : %d\r\n"
-                  "url      : %s\r\n"
-                  "key      : %s\r\n"
-                  "finger   : "
-                 ), config.jeedom.host
-                  , config.jeedom.port
-                  , config.jeedom.url
-                  , config.jeedom.apikey
-                );
+    Log.verbose(F("\r\n===== Jeedom =====\r\nhost     : "));
+    Log.verbose(config.jeedom.host);
+    Log.verbose(F("port     : %d\r\nurl      : "), config.jeedom.port);
+    Log.verbose(config.jeedom.url);
+    Log.verbose(F("\r\nkey      : "));
+    Log.verbose(config.jeedom.apikey);
+    Log.verbose(F("\r\nfinger   : "));
     for (int i=0; i < CFG_JDOM_FINGER_PRINT_SIZE; i++) {
       Log.verbose("%x ", config.jeedom.fingerprint[i]);
     }
-    Debugln();
-    Log.verbose(F("\ncompteur : %s\r\n"
-                  "freq     : %d\r\n"
-                 ), config.jeedom.adco
-                  , config.jeedom.freq
-                );
+    Log.verbose(F("\r\ncompteur : "));
+    Log.verbose(config.jeedom.adco);
+    Log.verbose(F("\r\nfreq     : %l\r\n"), config.jeedom.freq);
     _wdt_feed();
   #endif
 
   #ifdef MOD_MQTT
-    Log.verbose(F("\r\n===== MQTT =====\r\n"
-                  "IsActivated : %T\r\n"
-                  "host        : %s\r\n"
-                  "port        : %d\r\n"
-                  "protocol    : %s\r\n"
-                  "HasAuth     : %T\r\n"
-                  "user        : %s\r\n"
-                 ), config.mqtt.isActivated
-                  , config.mqtt.host
-                  , config.mqtt.port
-                  , config.mqtt.protocol
-                  , config.mqtt.hasAuth
-                  , config.mqtt.user
-                );
+    Log.verbose(F("\r\n===== MQTT =====\r\nIsActivated : %T\r\n"), config.mqtt.isActivated);
+    Log.verbose(F("host        : "));
+    Log.verbose(config.mqtt.host);
+    Log.verbose(F("\r\nport        : %d\r\nprotocol    : "), config.mqtt.port);
+    Log.verbose(config.mqtt.protocol);
+    Log.verbose(F("\r\nHasAuth     : %T\r\nuser        : "), config.mqtt.hasAuth);
+    Log.verbose(config.mqtt.user);
+    Log.verbose("\r\n");
     _wdt_feed();
   #endif
 
-  Log.verbose(F("LED Bright: %d\r\n"), config.led_bright);
+  Log.verbose(F("\r\nLED Bright: %d\r\n"), config.led_bright);
 }
 #endif
 
@@ -308,7 +287,7 @@ void resetConfig(void)
   config.ota_port = DEFAULT_OTA_PORT ;
 
   // Add other init default config here
-  
+
   // Compteur
   strcpy_P(config.compteur_modele, CFG_COMPTEUR_DEFAULT_MODELE);
   strcpy_P(config.compteur_tic, CFG_COMPTEUR_DEFAULT_TIC);

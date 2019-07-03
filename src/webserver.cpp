@@ -91,11 +91,11 @@ Output  : true if file found and sent
 Comments: -
 ====================================================================== */
 bool handleFileRead(String path, AsyncWebServerRequest *request) {
-  if ( path.endsWith(F("/")) )
+  if ( path.endsWith("/") )
     path += F("index.htm");
 
   String contentType = getContentType(path);
-  String pathWithGz = path + F(".gz");
+  String pathWithGz = path + ".gz";
   bool gzip = false;
 
   Log.verbose(F("handleFileRead "));
@@ -115,13 +115,13 @@ bool handleFileRead(String path, AsyncWebServerRequest *request) {
     AsyncWebServerResponse *response = request->beginResponse(SPIFFS, path, contentType);
     if (gzip) {
       Log.verbose(F("Add header content-encoding: gzip\r\n"));
-      response->addHeader(F("Content-Encoding"), F("gzip"));
+      response->addHeader("Content-Encoding", "gzip");
     }
     request->send(response);
     return true;
   }
 
-  request->send(404, F("text/plain"), F("File Not Found"));
+  request->send(404, "text/plain", "File Not Found");
   return false;
 }
 
@@ -191,28 +191,28 @@ void tinfoJSONTable(AsyncWebServerRequest *request)
 
     ValueList * me = tinfo.getList();
     String response = "";
-  
+
     // Got at least one ?
     if (me) {
       boolean first_item = true;
       // Json start
       response += F("[\r\n");
-  
+
       // Loop thru the node
       while (me->next) {
-  
+
         // we're there
         ESP.wdtFeed();
-  
+
         // go to next node
         me = me->next;
-  
+
         // First item do not add , separator
         if (first_item)
           first_item = false;
         else
           response += F(",\r\n");
-  
+
         response += F("{\"na\":\"");
         response +=  me->name ;
         response += F("\", \"va\":\"") ;
@@ -224,17 +224,17 @@ void tinfoJSONTable(AsyncWebServerRequest *request)
         response += F("\", \"fl\":");
         response += me->flags ;
         response += '}' ;
-  
+
       }
      // Json end
      response += F("\r\n]");
-  
+
     } else {
       Log.verbose(F("sending 404...\r\n"));
-      request->send(404, F("text/plain"), F("No data"));
+      request->send(404, "text/plain", "No data");
     }
     Log.verbose(F("sending..."));
-    request->send(200, F("application/json"), response);
+    request->send(200, "application/json", response);
     Log.verbose(F("OK!\r\n"));
   #else
     Log.verbose(F("sending 404...\r\n"));
@@ -254,7 +254,7 @@ void getSysJSONData(String & response)
 {
   const size_t capacity = JSON_OBJECT_SIZE(21) + 429;
   StaticJsonDocument<capacity> doc;
-  char buffer[40];
+  char buffer[60];
 
   doc["uptime"] = uptime;
 
@@ -265,62 +265,62 @@ void getSysJSONData(String & response)
   strcat(buffer, " ");
   strcat(buffer, __TIME__);
   doc["compilation_date"] = buffer;
-
+ 
   // Version Matériel
   doc["board"] = REMORA_BOARD;
 
   // Modules activés
   strcpy(buffer, "");
   #ifdef MOD_OLED
-    strcat(buffer, PSTR("OLED "));
+    strcat_P(buffer, PSTR("OLED "));
   #endif
   #ifdef MOD_TELEINFO
-    strcat(buffer, PSTR("TELEINFO "));
+    strcat_P(buffer, PSTR("TELEINFO "));
   #endif
   #ifdef MOD_RF69
-    strcat(buffer, PSTR("RF69 "));
+    strcat_P(buffer, PSTR("RF69 "));
   #endif
   #ifdef MOD_ADPS
-    strcat(buffer, PSTR("ADPS "));
+    strcat_P(buffer, PSTR("ADPS "));
   #endif
   #ifdef MOD_MQTT
-    strcat(buffer, PSTR("MQTT "));
+    strcat_P(buffer, PSTR("MQTT "));
   #endif
   #ifdef MOD_EMONCMS
-    strcat(buffer, PSTR("EMONCMS "));
+    strcat_P(buffer, PSTR("EMONCMS "));
   #endif
   #ifdef MOD_JEEDOM
-    strcat(buffer, PSTR("JEEDOM "));
+    strcstrcat_Pat(buffer, PSTR("JEEDOM "));
   #endif
   doc["modules"] = buffer;
   
   doc["sdk_version"] = system_get_sdk_version();
 
-  sprintf_P(buffer, "0x%0X",system_get_chip_id());
+  sprintf_P(buffer, PSTR("0x%0X"), system_get_chip_id());
   doc["chip_id"] = buffer;
 
-  sprintf_P(buffer, "0x%0X",system_get_boot_version());
+  sprintf_P(buffer, PSTR("0x%0X"), system_get_boot_version());
   doc["boot_version"] = buffer;
-
+  
   doc["cpu_freq"]        = system_get_cpu_freq();
-  doc["flash_real_size"] = formatSize(ESP.getFlashChipRealSize());
-  doc["firmware_size"]   = formatSize(ESP.getSketchSize());
-  doc["free_size"]       = formatSize(ESP.getFreeSketchSpace());
+  doc["flash_real_size"] = ESP.getFlashChipRealSize();
+  doc["firmware_size"]   = ESP.getSketchSize();
+  doc["free_size"]       = ESP.getFreeSketchSpace();
 
   doc["ip"]   = WiFi.localIP().toString();
   doc["mac"]  = WiFi.macAddress();
   doc["ssid"] = WiFi.SSID();
   doc["rssi"] = WiFi.RSSI();
-  
+
   FSInfo info;
   SPIFFS.info(info);
-  doc["spiffs_total"] = formatSize(info.totalBytes);
-  doc["spiffs_used"] = formatSize(info.usedBytes);
-  sprintf_P(buffer, "%d%%", 100 * info.usedBytes / info.totalBytes);
+  doc["spiffs_total"] = info.totalBytes;
+  doc["spiffs_used"] = info.usedBytes;
+  sprintf_P(buffer, PSTR("%d"), 100 * info.usedBytes / info.totalBytes);
   doc["spiffs_used_percent"] = buffer;
 
-  doc["free_ram"] = formatSize(system_get_free_heap_size());
-  sprintf_P(buffer, "%.2f%%", 100 - getLargestAvailableBlock() * 100.0 / getTotalAvailableMemory());
+  doc["free_ram"] = system_get_free_heap_size();
+  sprintf_P(buffer, PSTR("%.2f"), 100 - getLargestAvailableBlock() * 100.0 / getTotalAvailableMemory());
   doc["heap_fragmentation"] = buffer;
 
   serializeJson(doc, response);
@@ -337,11 +337,12 @@ void sysJSONTable(AsyncWebServerRequest *request)
 {
   String response;
   response.reserve(600);
+
   getSysJSONData(response);
 
   // Just to debug where we are
   Log.verbose(F("Serving /system page..."));
-  request->send(200, F("application/json"), response);
+  request->send(200, "application/json", response);
   Log.verbose(F("Ok!\r\n"));
 }
 
@@ -419,7 +420,7 @@ void confJSONTable(AsyncWebServerRequest *request)
   getConfJSONData(response);
   // Just to debug where we are
   Log.verbose(F("Serving /config page..."));
-  request->send(200, F("application/json"), response);
+  request->send(200, "application/json", response);
   Log.verbose(F("Ok!\r\n"));
 }
 
@@ -488,7 +489,7 @@ void spiffsJSONTable(AsyncWebServerRequest *request)
 {
   String response;
   getSpiffsJSONData(response);
-  request->send(200, F("application/json"), response);
+  request->send(200, "application/json", response);
 }
 
 /* ======================================================================
@@ -550,7 +551,7 @@ void wifiScanJSON(AsyncWebServerRequest *request)
 
   Log.verbose(response.c_str());
   Log.verbose(F("\r\nsending..."));
-  request->send(200, F("application/json"), response);
+  request->send(200, "application/json", response);
   Log.verbose(F("Ok!\r\n"));
 }
 
@@ -568,11 +569,11 @@ void tinfoJSON(AsyncWebServerRequest *request)
     String response;
     getTinfoListJson(response);
     if (response != "-1")
-      request->send(200, F("application/json"), response);
+      request->send(200, "application/json", response);
     else
-      request->send(404, F("text/plain"), F("No data"));
+      request->send(404, "text/plain", "No data");
   #else
-    request->send(404, F("text/plain"), F("teleinfo not enabled"));
+    request->send(404, "text/plain", "teleinfo not enabled");
   #endif
 }
 
@@ -667,7 +668,7 @@ void handleFactoryReset(AsyncWebServerRequest *request)
   Log.verbose(F("Serving /factory_reset page...\r\n"));
   resetConfig();
   ESP.eraseConfig();
-  request->send(200, F("text/plain"), FPSTR(FP_RESTART));
+  request->send(200, "text/plain", FPSTR(FP_RESTART));
   delay(1000);
   ESP.restart();
   while (true)
@@ -685,7 +686,7 @@ void handleReset(AsyncWebServerRequest *request)
 {
   // Just to debug where we are
   Log.verbose(F("Serving /reset page...\r\n"));
-  request->send(200, F("text/plain"), FPSTR(FP_RESTART));
+  request->send(200, "PSTR(""text/plain", FPSTR(FP_RESTART));
   delay(1000);
   ESP.restart();
   // This will fire watchdog
@@ -773,41 +774,41 @@ void handleFormConfig(AsyncWebServerRequest *request)
     Log.verbose(F("===== Posted configuration\r\n"));
 
     // WifInfo
-    strncpy(config.ssid,        request->getParam(F("ssid"), true)->value().c_str(),     CFG_SSID_SIZE );
-    strncpy(config.psk,         request->getParam(F("psk"), true)->value().c_str(),      CFG_PSK_SIZE );
-    strncpy(config.host,        request->getParam(F("host"), true)->value().c_str(),     CFG_HOSTNAME_SIZE );
-    strncpy(config.ap_psk,      request->getParam(F("ap_psk"), true)->value().c_str(),   CFG_PSK_SIZE );
-    if (strcmp(config.ota_auth, request->getParam(F("ota_auth"), true)->value().c_str()) != 0) {
-      strncpy(config.ota_auth,  request->getParam(F("ota_auth"), true)->value().c_str(), CFG_PSK_SIZE );
+    strncpy(config.ssid,        request->getParam("ssid", true)->value().c_str(),     CFG_SSID_SIZE );
+    strncpy(config.psk,         request->getParam("psk", true)->value().c_str(),      CFG_PSK_SIZE );
+    strncpy(config.host,        request->getParam("host", true)->value().c_str(),     CFG_HOSTNAME_SIZE );
+    strncpy(config.ap_psk,      request->getParam("ap_psk", true)->value().c_str(),   CFG_PSK_SIZE );
+    if (strcmp(config.ota_auth, request->getParam("ota_auth", true)->value().c_str()) != 0) {
+      strncpy(config.ota_auth,  request->getParam("ota_auth", true)->value().c_str(), CFG_PSK_SIZE );
       reboot = true;
     }
-    if (request->hasParam(F("ota_port"), true)) {
-      itemp = request->getParam(F("ota_port"), true)->value().toInt();
+    if (request->hasParam("ota_port", true)) {
+      itemp = request->getParam("ota_port", true)->value().toInt();
       config.ota_port = (itemp>=0 && itemp<=65535) ? itemp : DEFAULT_OTA_PORT;
     }
-    if (request->hasParam(F("cfg_led_bright"), true)) {
-      Log.verbose(F("cfg_led_bright: "));
-      Log.verbose(request->getParam(F("cfg_led_bright"), true)->value().c_str());
+    if (request->hasParam("cfg_led_bright", true)) {
+      Log.verbose("cfg_led_bright: ");
+      Log.verbose(request->getParam("cfg_led_bright", true)->value().c_str());
       Log.verbose("\r\n");
 
-      config.led_bright = map(request->getParam(F("cfg_led_bright"), true)->value().toInt(), 0, 100, 0, 255);
+      config.led_bright = map(request->getParam("cfg_led_bright", true)->value().toInt(), 0, 100, 0, 255);
       rgb_brightness = config.led_bright;
     }
 
     // Modele compteur
-    strncpy(config.compteur_modele, request->getParam(F("compteur_modele"), true)->value().c_str(), CFG_COMPTEUR_MODELE_SIZE);
-    strncpy(config.compteur_tic,    request->getParam(F("compteur_tic"), true)->value().c_str(),    CFG_COMPTEUR_TIC_SIZE);
+    strncpy(config.compteur_modele, request->getParam("compteur_modele", true)->value().c_str(), CFG_COMPTEUR_MODELE_SIZE);
+    strncpy(config.compteur_tic,    request->getParam("compteur_tic", true)->value().c_str(),    CFG_COMPTEUR_TIC_SIZE);
 
     #ifdef MOD_EMONCMS
       // Emoncms
-      strncpy(config.emoncms.host,   request->getParam(F("emon_host"), true)->value().c_str(),   CFG_EMON_HOST_SIZE );
-      strncpy(config.emoncms.url,    request->getParam(F("emon_url"), true)->value().c_str(),    CFG_EMON_URL_SIZE );
-      strncpy(config.emoncms.apikey, request->getParam(F("emon_apikey"), true)->value().c_str(), CFG_EMON_APIKEY_SIZE );
-      itemp = request->getParam(F("emon_node"), true)->value().toInt();
+      strncpy(config.emoncms.host,   request->getParam("emon_host", true)->value().c_str(),   CFG_EMON_HOST_SIZE );
+      strncpy(config.emoncms.url,    request->getParam("emon_url", true)->value().c_str(),    CFG_EMON_URL_SIZE );
+      strncpy(config.emoncms.apikey, request->getParam("emon_apikey", true)->value().c_str(), CFG_EMON_APIKEY_SIZE );
+      itemp = request->getParam("emon_node", true)->value().toInt();
       config.emoncms.node = (itemp>=0 && itemp<=255) ? itemp : 0 ;
-      itemp = request->getParam(F("emon_port"), true)->value().toInt();
+      itemp = request->getParam("emon_port", true)->value().toInt();
       config.emoncms.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_EMON_DEFAULT_PORT ;
-      itemp = request->getParam(F("emon_freq"), true)->value().toInt();
+      itemp = request->getParam("emon_freq", true)->value().toInt();
       if (itemp>0 && itemp<=86400){
         // Emoncms Update if needed
         Tick_emoncms.detach();
@@ -820,25 +821,25 @@ void handleFormConfig(AsyncWebServerRequest *request)
 
     #ifdef MOD_JEEDOM
       // jeedom
-      strncpy(config.jeedom.host,   request->getParam(F("jdom_host"), true)->value().c_str(),   CFG_JDOM_HOST_SIZE );
-      strncpy(config.jeedom.url,    request->getParam(F("jdom_url"), true)->value().c_str(),    CFG_JDOM_URL_SIZE );
-      strncpy(config.jeedom.apikey, request->getParam(F("jdom_apikey"), true)->value().c_str(), CFG_JDOM_APIKEY_SIZE );
-      strncpy(config.jeedom.adco,   request->getParam(F("jdom_adco"), true)->value().c_str(),   CFG_JDOM_ADCO_SIZE );
+      strncpy(config.jeedom.host,   request->getParam("jdom_host", true)->value().c_str(),   CFG_JDOM_HOST_SIZE );
+      strncpy(config.jeedom.url,    request->getParam("jdom_url", true)->value().c_str(),    CFG_JDOM_URL_SIZE );
+      strncpy(config.jeedom.apikey, request->getParam("jdom_apikey", true)->value().c_str(), CFG_JDOM_APIKEY_SIZE );
+      strncpy(config.jeedom.adco,   request->getParam("jdom_adco", true)->value().c_str(),   CFG_JDOM_ADCO_SIZE );
       // On transforme la chaine fingerprint en tableau de valeurs hexadecimales
-      if (request->getParam(F("jdom_finger"), true)->value().length() == 59) {
-        convertFinger(request->getParam(F("jdom_finger"), true)->value().c_str(), config.jeedom.fingerprint);
+      if (request->getParam("jdom_finger", true)->value().length() == 59) {
+        convertFinger(request->getParam("jdom_finger", true)->value().c_str(), config.jeedom.fingerprint);
       } else {
         // Si la chaine n'est pas correcte, on vide le tableau fingerprint
         for (size_t i = 0; i < CFG_JDOM_FINGER_PRINT_SIZE; i++) {
           config.jeedom.fingerprint[i] = 0;
         }
       }
-      if (request->hasParam(F("jdom_port"), true)) {
-			  itemp = request->getParam(F("jdom_port"), true)->value().toInt();
-			  config.jeedom.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_JDOM_DEFAULT_PORT;
-	  	}
-      if (request->hasParam(F("jdom_freq"), true)) {
-        itemp = request->getParam(F("jdom_freq"), true)->value().toInt();
+      if (request->hasParam("jdom_port", true)) {
+        itemp = request->getParam("jdom_port", true)->value().toInt();
+        config.jeedom.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_JDOM_DEFAULT_PORT;
+      }
+      if (request->hasParam("jdom_freq", true)) {
+        itemp = request->getParam("jdom_freq", true)->value().toInt();
         if (itemp>0 && itemp<=86400){
           // Emoncms Update if needed
           Tick_jeedom.detach();
@@ -852,19 +853,19 @@ void handleFormConfig(AsyncWebServerRequest *request)
 
     #ifdef MOD_MQTT
       // MQTT
-      if (request->hasParam(F("mqtt_isActivated"), true)) {
+      if (request->hasParam("mqtt_isActivated", true)) {
         config.mqtt.isActivated = true;
 
-        strncpy(config.mqtt.protocol, request->getParam(F("mqtt_protocol"), true)->value().c_str(),   CFG_MQTT_PROTOCOL_SIZE);
-        strncpy(config.mqtt.host,     request->getParam(F("mqtt_host"), true)->value().c_str(),       CFG_MQTT_HOST_SIZE);
-        itemp = request->getParam(F("mqtt_port"), true)->value().toInt();
+        strncpy(config.mqtt.protocol, request->getParam("mqtt_protocol", true)->value().c_str(),   CFG_MQTT_PROTOCOL_SIZE);
+        strncpy(config.mqtt.host,     request->getParam("mqtt_host", true)->value().c_str(),       CFG_MQTT_HOST_SIZE);
+        itemp = request->getParam("mqtt_port", true)->value().toInt();
         config.mqtt.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_MQTT_DEFAULT_PORT ;
 
-        if (request->hasParam(F("mqtt_hasAuth"), true)) {
+        if (request->hasParam("mqtt_hasAuth", true)) {
           config.mqtt.hasAuth = true;
 
-          strncpy(config.mqtt.user,     request->getParam(F("mqtt_user"), true)->value().c_str(),       CFG_MQTT_USER_SIZE);
-          strncpy(config.mqtt.password, request->getParam(F("mqtt_password"), true)->value().c_str(),   CFG_MQTT_PASSWORD_SIZE);
+          strncpy(config.mqtt.user,     request->getParam("mqtt_user", true)->value().c_str(),       CFG_MQTT_USER_SIZE);
+          strncpy(config.mqtt.password, request->getParam("mqtt_password", true)->value().c_str(),   CFG_MQTT_PASSWORD_SIZE);
         }
         else {
             config.mqtt.hasAuth = false;
@@ -891,22 +892,17 @@ void handleFormConfig(AsyncWebServerRequest *request)
       response = F("Unable to save configuration");
     }
 
-    #ifdef DEBUG
-      showconfig = true;
-    #endif
+    showconfig = true;
   }
   else
   {
     ret = 400;
     response = F("Missing Form Field");
   }
-
-  #ifdef DEBUG
   Log.verbose(F("Sending response %d : "), ret);
   Log.verbose(response.c_str());
   Log.verbose("\r\n");
-  #endif
-  request->send (ret, F("text/plain"), response);
+  request->send(ret, "text/plain", response);
 
   // This is slow, do it after response sent
   if (showconfig) {
@@ -962,7 +958,7 @@ void handle_fw_upload(AsyncWebServerRequest *request, String filename, size_t in
       Log.verbose(F("* Upload Finished.\r\n"));
     #endif
     if (Update.end(true)) {
-      Log.verbose(F("Update Success: %uB\r\n"), index+len);
+      Log.verbose(F("Update Success: %luB\r\n"), index+len);
     } else {
       Update.printError(DEBUG_SERIAL);
     }
@@ -989,6 +985,7 @@ void handleNotFound(AsyncWebServerRequest *request)
   // convert uri to char * for compare
   uri = sUri.c_str();
 
+  Log.verbose(F("default WEB routing\r\n"));
   Log.verbose(F("URI[%d]='"), strlen(uri));
   Log.verbose(uri);
   Log.verbose(F("'\r\n"));
@@ -996,7 +993,7 @@ void handleNotFound(AsyncWebServerRequest *request)
   // Got consistent URI, skip fisrt / ?
   // Attention si ? dans l'URL çà ne fait pas partie de l'URI
   // mais de hasArg traité plus bas
-  if (uri && *uri=='/' && *++uri ) {
+  if (uri && *uri == '/' && *++uri ) {
     uint8_t len = strlen(uri);
 
     #ifdef MOD_TELEINFO
@@ -1036,25 +1033,25 @@ void handleNotFound(AsyncWebServerRequest *request)
       relaisJSON(response);
       found = true;
     // http://ip_remora/delestage
-    } else if (!strcasecmp(uri, PSTR("delestage"))) {
+    } else if (!strcasecmp_P(uri, PSTR("delestage"))) {
       delestageJSON(response);
       found = true;
     // http://ip_remora/fp ou http://ip_remora/fpx
-    } else if ( (len==2 || len==3) && (uri[0]=='f'||uri[0]=='F') && (uri[1]=='p'||uri[1]=='P') ) {
+    } else if ((len == 2 || len == 3) && (uri[0] == 'f'|| uri[0] == 'F') && (uri[1] == 'p'|| uri[1] == 'P')) {
       int8_t fp = -1;
 
       // http://ip_remora/fp
-      if (len==2) {
+      if (len == 2) {
         fp=0;
 
       // http://ip_remora/fpx
-      } else if ( len==3 ) {
+      } else if (len == 3) {
         fp = uri[2];
-        if ( fp>='1' && fp<=('0'+NB_FILS_PILOTES) )
+        if (fp >= '1' && fp <= ('0' + NB_FILS_PILOTES))
          fp -= '0';
       }
 
-      if (fp>=0 && fp<=NB_FILS_PILOTES) {
+      if (fp >= 0 && fp <= NB_FILS_PILOTES) {
         fpJSON(response, fp);
         found = true;
       }
@@ -1064,38 +1061,38 @@ void handleNotFound(AsyncWebServerRequest *request)
 
   // Requêtes modifiantes (cumulable)
   // ================================
-  if (  request->hasParam(F("fp")) ||
-        request->hasParam(F("setfp")) ||
-        request->hasParam(F("relais")) ||
-        request->hasParam(F("frelais"))) {
+  if (  request->hasParam("fp") ||
+        request->hasParam("setfp") ||
+        request->hasParam("relais") ||
+        request->hasParam("frelais")) {
 
     int error = 0;
     response = FPSTR(FP_JSON_START);
 
     // http://ip_remora/?setfp=CMD
-    if (request->hasParam(F("setfp"))) {
-      String value = request->getParam(F("setfp"))->value();
+    if (request->hasParam("setfp")) {
+      String value = request->getParam("setfp")->value();
       error += setfp(value);
     }
     // http://ip_remora/?fp=CMD
-    if (request->hasParam(F("fp"))) {
-      String value = request->getParam(F("fp"))->value();
+    if (request->hasParam("fp")) {
+      String value = request->getParam("fp")->value();
       error += setfp(value);
     }
 
     // http://ip_remora/?relais=n
-    if (request->hasParam(F("relais"))) {
-      String value = request->getParam(F("relais"))->value();
+    if (request->hasParam("relais")) {
+      String value = request->getParam("relais")->value();
       // La nouvelle valeur n'est pas celle qu'on vient de positionner ?
-      if (relais(value) != request->getParam(F("relais"))->value().toInt() )
+      if (relais(value) != request->getParam("relais")->value().toInt() )
         error--;
     }
 
     // http://ip_remora/?frelais=n (n: 0 | 1 | 2)
-    if (request->hasParam(F("frelais"))) {
-      String value = request->getParam(F("frelais"))->value();
+    if (request->hasParam("frelais")) {
+      String value = request->getParam("frelais")->value();
       // La nouvelle valeur n'est pas celle qu'on vient de positionner ?
-      if ( fnct_relais(value) != request->getParam(F("frelais"))->value().toInt() )
+      if ( fnct_relais(value) != request->getParam("frelais")->value().toInt() )
         error--;
     }
 
@@ -1108,7 +1105,7 @@ void handleNotFound(AsyncWebServerRequest *request)
 
   // Got it, send json
   if (found) {
-    request->send(200, F("application/json"), response);
+    request->send(200, "application/json", response);
   } else {
     // le fichier demandé existe sur le système SPIFFS ?
     found = handleFileRead(request->url(), request);
@@ -1120,7 +1117,7 @@ void handleNotFound(AsyncWebServerRequest *request)
     message += F("URI: ");
     message += request->url();
     message += F("\r\nMethod: ");
-    message += ( request->method() == HTTP_GET ) ? F("GET") : F("POST");
+    message += ( request->method() == HTTP_GET ) ? "GET" : "POST";
     message += F("\r\nArguments: ");
     message += request->params();
     message += F("\r\n");
@@ -1131,6 +1128,6 @@ void handleNotFound(AsyncWebServerRequest *request)
       AsyncWebParameter* p = request->getParam(i);
       message += " " + p->name() + ": " + p->value() + "\n";
     }
-    request->send(404, F("text/plain"), message);
+    request->send(404, "text/plain", message);
   }
 }

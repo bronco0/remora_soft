@@ -60,8 +60,8 @@
 // Définir ici les identifiants de
 // connexion à votre réseau Wifi
 // =====================================
-//#define DEFAULT_WIFI_SSID ""
-//#define DEFAULT_WIFI_PASS ""
+#define DEFAULT_WIFI_SSID "TheWify"
+#define DEFAULT_WIFI_PASS "TheWify1."
 #define DEFAULT_WIFI_AP_PASS "Remora_WiFi"
 // =====================================
 #define DEFAULT_OTA_PORT  8266
@@ -143,17 +143,18 @@ extern "C" {
 #define _wdt_feed ESP.wdtFeed
 #define REBOOT_DELAY    100     /* Delay for rebooting once reboot flag is set */
 
-#define DEBUG // Décommenter cette ligne pour activer le DEBUG serial
+//#define DEBUG // Décommenter cette ligne pour activer le DEBUG serial
 
 //#define LOG_LEVEL LOG_LEVEL_SILENT    // no output
 //#define LOG_LEVEL LOG_LEVEL_FATAL     // fatal errors
 //#define LOG_LEVEL LOG_LEVEL_ERROR     // all errors
 //#define LOG_LEVEL LOG_LEVEL_WARNING   // errors, and warnings
-//#define LOG_LEVEL LOG_LEVEL_NOTICE    // errors, warnings and notices
+#define LOG_LEVEL LOG_LEVEL_NOTICE    // errors, warnings and notices
 //#define LOG_LEVEL LOG_LEVEL_TRACE     // errors, warnings, notices & traces
-#define LOG_LEVEL LOG_LEVEL_VERBOSE   // all
+//#define LOG_LEVEL LOG_LEVEL_VERBOSE   // all
 #define DEBUG_SERIAL  Serial1
 #define DEBUG_INIT              /* Permet d'initialiser la connexion série pour debug */
+
 // I prefix debug macro to be sure to use specific for THIS library
 // debugging, this should not interfere with main sketch or other
 // libraries
@@ -170,7 +171,7 @@ extern "C" {
   #define DebuglnF(x) DEBUG_SERIAL.println(F(x))
   #define Debugf(...) DEBUG_SERIAL.printf(__VA_ARGS__)
   #define Debugflush  DEBUG_SERIAL.flush
-#else
+//#else
   #define Debug(x)
   #define Debugln(x)
   #define DebugF(x)

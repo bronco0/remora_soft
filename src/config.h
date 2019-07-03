@@ -23,8 +23,8 @@
 // Include main project include file
 #include "remora.h"
 
-#define CFG_SSID_SIZE 		32
-#define CFG_PSK_SIZE  		64
+#define CFG_SSID_SIZE     32
+#define CFG_PSK_SIZE      64
 #define CFG_HOSTNAME_SIZE 16
 
 #define CFG_COMPTEUR_MODELE_SIZE 12
@@ -33,9 +33,9 @@
 #define CFG_COMPTEUR_DEFAULT_TIC    PSTR("historique")
 
 #ifdef MOD_EMONCMS
-  #define CFG_EMON_HOST_SIZE 		32
-  #define CFG_EMON_APIKEY_SIZE 	32
-  #define CFG_EMON_URL_SIZE 		32
+  #define CFG_EMON_HOST_SIZE    32
+  #define CFG_EMON_APIKEY_SIZE  32
+  #define CFG_EMON_URL_SIZE     32
   #define CFG_EMON_DEFAULT_PORT 80
   #define CFG_EMON_DEFAULT_HOST PSTR("emoncms.org")
   #define CFG_EMON_DEFAULT_URL  PSTR("/input/post.json")
@@ -73,8 +73,8 @@
 //#define DEFAULT_OTA_AUTH     ""
 
 // Bit definition for different configuration modes
-#define CFG_LCD				  0x0001	// Enable display
-#define CFG_DEBUG			  0x0002	// Enable serial debug
+#define CFG_LCD         0x0001  // Enable display
+#define CFG_DEBUG       0x0002  // Enable serial debug
 #define CFG_RGB_LED     0x0004  // Enable RGB LED
 #define CFG_LED_AWAKE   0x0008  // Enable led blink when awake (take care, consumption)
 #define CFG_LED_TX      0x0010  // Enable led blink when RF transmitting (take care, consumption)
@@ -137,13 +137,13 @@
 #ifdef MOD_EMONCMS
   typedef struct
   {
-    char  host[CFG_EMON_HOST_SIZE+1]; 		// FQDN
+    char  host[CFG_EMON_HOST_SIZE+1];     // FQDN
     char  apikey[CFG_EMON_APIKEY_SIZE+1]; // Secret
-    char  url[CFG_EMON_URL_SIZE+1];  			// Post URL
-    uint16_t port;    								    // Protocol port (HTTP/HTTPS)
-    uint16_t node;     									  // optional node
+    char  url[CFG_EMON_URL_SIZE+1];       // Post URL
+    uint16_t port;                        // Protocol port (HTTP/HTTPS)
+    uint16_t node;                        // optional node
     uint32_t freq;                        // refresh rate
-    uint8_t filler[21];									  // in case adding data in config avoiding loosing current conf by bad crc*/
+    uint8_t filler[21];                   // in case adding data in config avoiding loosing current conf by bad crc*/
   } _emoncms;
 #endif
 
@@ -169,7 +169,7 @@
   typedef struct
   {
     char     host[CFG_MQTT_HOST_SIZE+1];         // FQDN or ip
-    char     protocol[CFG_MQTT_PROTOCOL_SIZE+1]; // Protocol (mqtt or mqtts) 
+    char     protocol[CFG_MQTT_PROTOCOL_SIZE+1]; // Protocol (mqtt or mqtts)
     char     user[CFG_MQTT_USER_SIZE+1];         // User
     char     password[CFG_MQTT_PASSWORD_SIZE+1]; // Password
     uint16_t port;                               // Port
@@ -184,18 +184,18 @@
 // 1024 bytes total including CRC
 typedef struct
 {
-  char ssid[CFG_SSID_SIZE+1]; 		                  // SSID
-  char psk[CFG_PSK_SIZE+1]; 		                    // Pre shared key
+  char ssid[CFG_SSID_SIZE+1];                       // SSID
+  char psk[CFG_PSK_SIZE+1];                         // Pre shared key
   char host[CFG_HOSTNAME_SIZE+1];                   // Hostname
   char ap_psk[CFG_PSK_SIZE+1];                      // Access Point Pre shared key
   char ota_auth[CFG_PSK_SIZE+1];                    // OTA Authentication password
-  uint32_t config;           		                    // Bit field register
-  uint16_t ota_port;         		                    // OTA port
+  uint32_t config;                                  // Bit field register
+  uint16_t ota_port;                                // OTA port
   uint8_t  led_bright;                              // RGB Led brightness 0-255
   uint16_t oled_type;                               // Display OLED type (1306 or 1106)
   char compteur_modele[CFG_COMPTEUR_MODELE_SIZE+1]; // Modele de compteur
   char compteur_tic[CFG_COMPTEUR_TIC_SIZE+1];       // TIC mode
-  uint8_t  filler[104];      		                    // in case adding data in config avoiding loosing current conf by bad crc
+  uint8_t  filler[104];                             // in case adding data in config avoiding loosing current conf by bad crc
   #ifdef MOD_EMONCMS
   _emoncms emoncms;                                 // Emoncms configuration
   #else

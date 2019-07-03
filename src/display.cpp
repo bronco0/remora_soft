@@ -238,9 +238,8 @@ Input   : Pointeur sur l'instance de l'afficheur
 Output  : -
 Comments: -
 ====================================================================== */
+
 void drawFrameTinfo(OLEDDisplay *oled, OLEDDisplayUiState *state, int16_t x, int16_t y) {
-  uint8_t percent = 0;
-  char buff[20] = "";
   oled->clear();
   oled->setFont(Roboto_Condensed_Bold_Bold_16);
   if (!(status & STATUS_TINFO)) {
@@ -250,7 +249,10 @@ void drawFrameTinfo(OLEDDisplay *oled, OLEDDisplayUiState *state, int16_t x, int
     oled->drawString(x + 64, 24, F("not"));
     oled->drawString(x + 64, 38, F("initialized"));
   }
+  #ifdef MOD_TELEINFO
   else {
+    uint8_t percent = 0;
+    char buff[20] = "";
     // Effacer le buffer de l'affichage
     oled->setTextAlignment(TEXT_ALIGN_LEFT);
     //oled->setFont(Roboto_Condensed_Bold_14);
@@ -295,7 +297,9 @@ void drawFrameTinfo(OLEDDisplay *oled, OLEDDisplayUiState *state, int16_t x, int
     // Bargraphe de puissance
     drawProgressBarVert(oled, 114, 6, 12, 40, percent);
   }
+  #endif
 }
+
 
 /* ======================================================================
 Function: drawFrameLogo

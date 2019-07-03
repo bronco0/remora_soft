@@ -34,9 +34,7 @@ boolean httpPost(const char * host, const uint16_t port, const char * url,
   const uint8_t fingerprint[])
 {
   bool ret = false;
-  #ifdef DEBUG
-    unsigned long start = millis();
-  #endif
+  unsigned long start = millis();
 
   // Code pour une connexion sur un serveur SSL
   if (port == 443) {
@@ -49,8 +47,10 @@ boolean httpPost(const char * host, const uint16_t port, const char * url,
     //String content;
     //int code;
 
-    Log.verbose("Request to server SSL %s:%d\r\n", host, port);
-    
+    Log.verbose(F("Request to server SSL "));
+    Log.verbose(host);
+    Log.verbose(F(":%d\r\n"), port);
+
     //myWdt = millis();
     //Debugln("Client Secure started");
     //Debugln("Free HEAP: " + String(ESP.getFreeHeap()));
@@ -111,7 +111,7 @@ boolean httpPost(const char * host, const uint16_t port, const char * url,
       }
     }
     if (TOUT) {
-      Log.error(F("\n*** Timeout receiving headers\r\n"));
+      Log.error(F("\r\n*** Timeout receiving headers\r\n"));
       return ret;
     }
     //myWdt = millis();
@@ -123,7 +123,7 @@ boolean httpPost(const char * host, const uint16_t port, const char * url,
       TOUT = 0;
     }
     if (TOUT) {
-      Log.error(F("\n*** Timeout receiving body\r\n"));
+      Log.error(F("\r\n*** Timeout receiving body\r\n"));
       return ret;
     }
     //content = String(c_buf);
@@ -142,7 +142,7 @@ boolean httpPost(const char * host, const uint16_t port, const char * url,
     Log.verbose("Request to server %s:%d\r\n", host, port);
 
     WiFiClient client;
-    
+
     HTTPClient http;
 
     // configure traged server and url

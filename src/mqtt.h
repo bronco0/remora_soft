@@ -42,8 +42,8 @@
 // Set keep alive in sec. Will also be used when Remora disconnect from broker to spawn lws message after it timeouts.
 #define MQTT_KEEP_ALIVE 10
 
-#define DELAY_PUBLISH_SYSINFO 1
-#define DELAY_PUBLISH_TINFO 1
+#define DELAY_PUBLISH_SYSINFO 5
+//#define DELAY_PUBLISH_TINFO 1
 
 // Variables
 extern AsyncMqttClient mqttClient;

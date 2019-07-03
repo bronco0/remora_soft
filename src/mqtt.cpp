@@ -26,12 +26,13 @@ int nbRestart = 0;
 char etatFP_sav[NB_FILS_PILOTES + 1] = "";
 
 void connectToMqtt() {
-  Log.notice(F("Connection au broker MQTT."));
+  Log.notice(F("Connexion au broker MQTT.\r\n"));
 
   initMqtt();
   if (!mqttClient.connected()) {
     mqttClient.connect();
   }
+  Log.verbose(F("connectToMqtt_end\r\n"));
 }
 
 void disconnectMqtt() {
@@ -55,10 +56,10 @@ void mqttSysinfoPublish(void) {
     Log.verbose(F("message_send = "));
     Log.verbose(message.c_str());
     Log.verbose("\r\n");
-    if (mqttClient.publish(PSTR(MQTT_TOPIC_SYSTEM), 1, true, message.c_str()) == 0) {
-      Log.error(F("Mqtt : Erreur publish Sysinfo"));
+    if (mqttClient.publish(MQTT_TOPIC_SYSTEM, 1, true, message.c_str()) == 0) {
+      Log.error(F("Mqtt : Erreur publish Sysinfo\r\n"));
     }
-  } 
+  }
 }
 
 #ifdef MOD_TELEINFO
@@ -73,8 +74,8 @@ void mqttSysinfoPublish(void) {
         Log.verbose(F("message_send = "));
         Log.verbose(message.c_str());
         Log.verbose("\r\n");
-        if (mqttClient.publish(PSTR(MQTT_TOPIC_TINFO), 1, false, message.c_str()) == 0) {
-          Log.error(F("Mqtt : Erreur publish Tinfo"));
+        if (mqttClient.publish(MQTT_TOPIC_TINFO, 1, false, message.c_str()) == 0) {
+          Log.error(F("Mqtt : Erreur publish Tinfo\r\n"));
         }
       }
     }
@@ -87,7 +88,7 @@ void mqttFpPublish(uint8_t fp, bool force) {
     char message[NB_FILS_PILOTES*20];
     const size_t capacity = JSON_OBJECT_SIZE(NB_FILS_PILOTES) + 50;
     StaticJsonDocument<capacity> doc;
-    
+
     if (fp >= 0 && fp <= NB_FILS_PILOTES) {
       if (fp > 0) {
         fp_last = fp;
@@ -95,17 +96,17 @@ void mqttFpPublish(uint8_t fp, bool force) {
       else {
         fp = 1;
       }
-  
+
       for (; fp <= fp_last; fp++) {
         char fp_name[4] = "";
         char i_to_a[3] = "";
         // Convert i to asci
         itoa(fp, i_to_a, 10);
-        
+
         // Concat "fp" whith i => fp1, fp2, fp3, ...
         strcat(fp_name, "fp");
         strcat(fp_name, i_to_a);
-  
+
         if (etatFP[fp-1] != etatFP_sav[fp-1] || force) {
           char val[2];
           val[0] = etatFP[fp-1];
@@ -117,16 +118,18 @@ void mqttFpPublish(uint8_t fp, bool force) {
       _wdt_feed();
 
       strcpy(etatFP_sav, etatFP);
-      serializeJson(doc, message);
+      if (!doc.isNull())  {
+        serializeJson(doc, message);
   
-      Log.verbose(F("message_send = "));
-      Log.verbose(message);
-      Log.verbose("\r\n");
-      if ( mqttClient.publish(PSTR(MQTT_TOPIC_FP), 1, false, message) == 0 ) {
-        Log.error(F("Mqtt : Erreur publish FP"));
+        Log.verbose(F("message_send = "));
+        Log.verbose(message);
+        Log.verbose("\r\n");
+        if ( mqttClient.publish(MQTT_TOPIC_FP, 1, false, message) == 0 ) {
+          Log.error(F("Mqtt : Erreur publish FP\r\n"));
+        }
       }
     }
-  } 
+  }
 }
 
 void mqttDelestagePublish(void) {
@@ -136,7 +139,7 @@ void mqttDelestagePublish(void) {
     StaticJsonDocument<capacity> doc;
 
     doc[F("status")]   = (nivDelest > 0)?1:0;
-    doc[F("nb_zone")]  = nivDelest;
+    doc[F("niveau")]  = nivDelest;
     doc[F("old_zone")] = plusAncienneZoneDelestee;
 
     serializeJson(doc, Serial);
@@ -144,8 +147,8 @@ void mqttDelestagePublish(void) {
     Log.verbose(F("message_send = "));
     Log.verbose(message);
     Log.verbose("\r\n");
-    if ( mqttClient.publish(PSTR(MQTT_TOPIC_RELAIS), 1, false, message)  == 0 ) {
-      Log.error(F("Mqtt : Erreur publish Delestage"));
+    if ( mqttClient.publish(MQTT_TOPIC_RELAIS, 1, false, message)  == 0 ) {
+      Log.error(F("Mqtt : Erreur publish Delestage\r\n"));
     }
   }
 }
@@ -158,20 +161,20 @@ void mqttRelaisPublish(void) {
 
     doc["mode"] = fnctRelais;
     doc["status"] = etatrelais;
-    
+
     serializeJson(doc, message);
 
     Log.verbose(F("message_send = "));
     Log.verbose(message);
     Log.verbose("\r\n");
-    if (mqttClient.publish(PSTR(MQTT_TOPIC_RELAIS), 1, false, message)  == 0) {
-      Log.error(F("Mqtt : Erreur publish Relais"));
+    if (mqttClient.publish(MQTT_TOPIC_RELAIS, 1, false, message)  == 0) {
+      Log.error(F("Mqtt : Erreur publish Relais\r\n"));
     }
   }
 }
 
 void onMqttConnect(bool sessionPresent) {
-  Log.notice(F("Connecté au broker MQTT"));
+  Log.notice(F("Connecté au broker MQTT\r\n"));
 
   if (sessionPresent) {
     nbRestart = 0;
@@ -179,20 +182,20 @@ void onMqttConnect(bool sessionPresent) {
 
   // subscribe aux topics commandes
   if (mqttClient.connected()) {
-    mqttClient.subscribe(PSTR(MQTT_TOPIC_FP_SET), 1);
-    mqttClient.subscribe(PSTR(MQTT_TOPIC_FP_GET), 1);
-    mqttClient.subscribe(PSTR(MQTT_TOPIC_RELAIS_SET), 1);
-    mqttClient.subscribe(PSTR(MQTT_TOPIC_RELAIS_GET), 1);
+    Log.verbose(F("Subscribe topic\r\n"));
+    mqttClient.subscribe(MQTT_TOPIC_FP_SET, 1);
+    mqttClient.subscribe(MQTT_TOPIC_FP_GET, 1);
+    mqttClient.subscribe(MQTT_TOPIC_RELAIS_SET, 1);
+    mqttClient.subscribe(MQTT_TOPIC_RELAIS_GET, 1);
   }
 
-  // Publish online status in retained mode ( will be set to 0 by lsw when Remora disconnect after MQTT_KEEP_ALIVE as expired ). 
-  mqttClient.publish(PSTR(MQTT_TOPIC_LSW),1,true,"1");
+  // Publish online status in retained mode ( will be set to 0 by lsw when Remora disconnect after MQTT_KEEP_ALIVE as expired ).
+  mqttClient.publish(MQTT_TOPIC_LSW,1,true,"1");
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason) {
-  Log.notice(F("Connexion aux brokers MQTT"));
-
   if (WiFi.isConnected() && config.mqtt.isActivated) {
+    Log.notice(F("Connexion aux brokers MQTT\r\n"));
     if (nbRestart < 2)
       mqttReconnectTimer.once(2, connectToMqtt);
     else if (nbRestart < 5)
@@ -225,7 +228,7 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
       char * pch;
       uint16_t n;
       uint8_t c = 0;
-      
+
       pch = strrchr(topic,'/');
 
       for (n = pch-topic+1 ; n < strlen(topic); n++) {
@@ -246,11 +249,11 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
     }
   }
   // Get relais information
-  else if (!strncmp_P(topic, PSTR(MQTT_TOPIC_RELAIS_GET), strlen_P(PSTR(MQTT_TOPIC_RELAIS_GET)))) {
+  else if (!strncmp(topic, MQTT_TOPIC_RELAIS_GET, strlen(MQTT_TOPIC_RELAIS_GET))) {
     mqttRelaisPublish();
   }
   // Set fp
-  else if (!strncmp(topic, PSTR(MQTT_TOPIC_FP_SET), strlen(PSTR(MQTT_TOPIC_FP_SET)))) {
+  else if (!strncmp(topic, MQTT_TOPIC_FP_SET, strlen(MQTT_TOPIC_FP_SET))) {
     char message[NB_FILS_PILOTES] = "";
     const size_t capacity = JSON_OBJECT_SIZE(NB_FILS_PILOTES) + NB_FILS_PILOTES*10;
     StaticJsonDocument<capacity> doc;
@@ -277,14 +280,14 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
     }
 
     _wdt_feed();
-    
+
     Log.verbose(F("message = "));
     Log.verbose(message);
     Log.verbose("\r\n");
     setfp(message);
   }
   // Set relais
-  else if (!strncmp_P(topic, PSTR(MQTT_TOPIC_RELAIS_SET), strlen_P(PSTR(MQTT_TOPIC_RELAIS_SET)))) {
+  else if (!strncmp(topic, MQTT_TOPIC_RELAIS_SET, strlen(MQTT_TOPIC_RELAIS_SET))) {
     const size_t capacity = JSON_OBJECT_SIZE(1) + 10;
     StaticJsonDocument<capacity> doc;
 
@@ -301,17 +304,20 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
 }
 
 void onMqttPublish(uint16_t packetId) {
-  Log.verbose(F("Publish packetId: %d\n"), packetId);
+  Log.verbose(F("Publish packetId: %d\r\n"), packetId);
 }
 
 void initMqtt(void) {
+  Log.verbose(F("initMqtt\r\n"));
   if (first_setup) {
+    Log.verbose(F("initMqtt_first_setup\r\n"));
     mqttClient.onConnect(onMqttConnect);
     mqttClient.onDisconnect(onMqttDisconnect);
     //mqttClient.onSubscribe(onMqttSubscribe);
     //mqttClient.onUnsubscribe(onMqttUnsubscribe);
     mqttClient.onMessage(onMqttMessage);
     mqttClient.onPublish(onMqttPublish);
+    Log.verbose(F("initMqtt_first_setup_end\r\n"));
   }
   if (strcmp(config.mqtt.host, "") != 0 && config.mqtt.port > 0) {
     mqttClient.setServer(config.mqtt.host, config.mqtt.port);
@@ -319,12 +325,12 @@ void initMqtt(void) {
   if (config.mqtt.hasAuth && (strcmp(config.mqtt.user, "") != 0 || strcmp(config.mqtt.password, "") != 0)) {
     mqttClient.setCredentials(config.mqtt.user, config.mqtt.password);
   }
-  // Set mqttclient keep alive to 60sec, clean session to false, LSW message to  0 , & mqtt client id to hostanme 
+  // Set mqttclient keep alive to 60sec, clean session to false, LSW message to  0 , & mqtt client id to hostanme
   mqttClient.setClientId(config.host);
   mqttClient.setKeepAlive(MQTT_KEEP_ALIVE);
   mqttClient.setCleanSession(true);
-  mqttClient.setWill(PSTR(MQTT_TOPIC_LSW) , 1, true, "0");
-  
+  mqttClient.setWill(MQTT_TOPIC_LSW , 1, true, "0");
+
   #if ASYNC_TCP_SSL_ENABLED
     if (config.mqtt.protocol == "mqtts") {
       mqttClient.setSecure(true);
@@ -336,5 +342,6 @@ void initMqtt(void) {
   //#ifdef MOD_TELEINFO
     //mqttTinfoTimer.attach(DELAY_PUBLISH_TINFO, mqttTinfoPublish);
   //#endif
+  Log.verbose(F("initMqtt_end\r\n"));
 }
 #endif // MOD_MQTT
