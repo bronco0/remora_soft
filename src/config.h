@@ -20,7 +20,7 @@
 // Include main project include file
 #include "remora.h"
 
-#define CFG_DEFAULT_ID ESP.getChipId()
+#define CFG_DEFAULT_ID system_get_chip_id()
 
 #define CFG_HOSTNAME_SIZE 16
 

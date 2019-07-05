@@ -224,7 +224,7 @@ void resetConfig(void)
   char hostname[40] = "";
   char chipId[10] = "";
   strcat_P(hostname, DEFAULT_HOSTNAME);
-  sprintf(chipId, PSTR("_%06X"), ESP.getChipId());
+  sprintf(chipId, PSTR("_%06X"), system_get_chip_id());
   strcat(hostname, chipId);
   //sprintf_P(config.host, PSTR("DEFAULT_HOSTNAME_%06X"), ESP.getChipId());
   strcpy(config.host, hostname);
@@ -291,20 +291,16 @@ Comments: -
 ====================================================================== */
 void getSysJSONData(String &response)
 {
-  const size_t capacity = JSON_OBJECT_SIZE(21) + 429;
+  const size_t capacity = JSON_OBJECT_SIZE(13) + 406;
   StaticJsonDocument<capacity> doc;
   char buffer[60];
+  
+  doc["id"] = config.id;
 
   doc["uptime"] = uptime;
 
   doc["sdk_version"] = system_get_sdk_version();
-
-  sprintf_P(buffer, PSTR("0x%0X"), system_get_chip_id());
-  doc["chip_id"] = buffer;
-
-  sprintf_P(buffer, PSTR("0x%0X"), system_get_boot_version());
-  doc["boot_version"] = buffer;
-  
+ 
   doc["cpu_freq"]        = system_get_cpu_freq();
   doc["flash_real_size"] = ESP.getFlashChipRealSize();
   doc["firmware_size"]   = ESP.getSketchSize();

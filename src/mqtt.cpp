@@ -42,13 +42,22 @@ bool mqttIsConnected() {
   return mqttClient.connected();
 }
 
-void mqttConfigPublish(void) {
+void mqttConfigPublish(bool error) {
   // Send config via mqtt
   if (config.mqtt.isActivated && mqttIsConnected()) {
     String message;
-    message.reserve(600);
-    getConfJSONData(message);
-
+    if (!error) {
+      message.reserve(600);
+      getConfJSONData(message);
+    }
+    else {
+      const size_t capacity = JSON_OBJECT_SIZE(2) + 20;
+      StaticJsonDocument<capacity> doc;
+      message.reserve(100);
+      doc["id"] = config.id;
+      doc["state"] = "error";
+      serializeJson(doc, message);
+    }
     Log.verbose(F("message_send = "));
     Log.verbose(message.c_str());
     Log.verbose("\r\n");
@@ -74,9 +83,8 @@ void mqttSysinfoPublish(void) {
   }
 }
 
-void mqttFpPublish(uint8_t fp, bool force) {
+void mqttFpPublish(uint8_t fp) {
   if (config.mqtt.isActivated && mqttIsConnected()) {
-    uint8_t fp_last = NB_FILS_PILOTES;
     char message[NB_FILS_PILOTES*20 + 4];
     const size_t capacity = JSON_OBJECT_SIZE(NB_FILS_PILOTES + 1) + 50;
     StaticJsonDocument<capacity> doc;
@@ -184,9 +192,13 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
     }
   }
   else if (!strcmp_P(topic, PSTR(MQTT_TOPIC_CONFIG_SET))) {
+    bool changed_ota_auth = false;
+    bool changed_mqtt_param = false;
     const size_t capacity = JSON_OBJECT_SIZE(6) + JSON_OBJECT_SIZE(7) + 300;
     StaticJsonDocument<capacity> doc;
+
     deserializeJson(doc, payload);
+
     if (doc["id"] == config.id) {
       // Hostname
       if (!doc["hostname"].isNull()) {
@@ -202,13 +214,59 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
       }
       if (!doc["ota_auth"].isNull() && strcmp(config.ota_auth, doc["ota_auth"].as<const char *>()) != 0) {
         strncpy(config.ota_auth, doc["ota_auth"].as<const char *>(), CFG_PSK_SIZE );
-        reboot = true;
+        changed_ota_auth = true;
       }
 
       if (!doc["ota_port"].isNull()) {
-        //itemp = request->getParam("ota_port", true)->value().toInt();
-        config.ota_port = (doc["ota_port"] >= 0 && doc["ota_port"] <= 65535) ? doc["ota_port"] : DEFAULT_OTA_PORT;
+        config.ota_port = (doc["ota_port"].as<unsigned int>() >= 0 && doc["ota_port"].as<unsigned int>() <= 65535) ? doc["ota_port"].as<unsigned int>() : DEFAULT_OTA_PORT;
       }
+
+      if (!doc["mqtt"]["host"].isNull()) {
+        strncpy(config.mqtt.host, doc["mqtt"]["host"].as<const char *>(), CFG_MQTT_HOST_SIZE);
+        changed_mqtt_param = true;
+      }
+      if (!doc["mqtt"]["port"].isNull()) {
+        config.mqtt.port = (doc["mqtt"]["port"].as<unsigned int>() >= 0 && doc["mqtt"]["port"].as<unsigned int>() <= 65535) ? doc["mqtt"]["port"].as<unsigned int>() : CFG_MQTT_DEFAULT_PORT;
+        changed_mqtt_param = true;
+      }
+      if (!doc["mqtt"]["protocol"].isNull()) {
+        strncpy(config.mqtt.protocol, doc["mqtt"]["protocol"].as<const char *>(), CFG_MQTT_PROTOCOL_SIZE);
+        changed_mqtt_param = true;
+      }
+      if (!doc["mqtt"]["hasAuth"].isNull()) {
+        config.mqtt.hasAuth = doc["mqtt"]["hasAuth"].as<bool>();
+        changed_mqtt_param = true;
+      }
+      if (!doc["mqtt"]["user"].isNull()) {
+        strncpy(config.mqtt.user, doc["mqtt"]["user"].as<const char *>(), CFG_MQTT_USER_SIZE);
+        changed_mqtt_param = true;
+      }
+      if (!doc["mqtt"]["password"].isNull()) {
+        strncpy(config.mqtt.password, doc["mqtt"]["password"].as<const char *>(), CFG_MQTT_PASSWORD_SIZE);
+        changed_mqtt_param = true;
+      }
+
+      if ( saveConfig() ) {
+        mqttConfigPublish();
+        if (changed_ota_auth) {
+          reboot = true;
+        }
+        if (changed_mqtt_param) {
+          if (mqttIsConnected()) {
+            disconnectMqtt();
+          } 
+      
+          if (config.mqtt.isActivated && !mqttIsConnected()) {
+            connectToMqtt();
+          }
+        }
+      } else {
+        mqttConfigPublish(true);
+      }
+      _wdt_feed();
+      #ifndef DISABLE_LOGGING
+        showConfig();
+      #endif
     }
   }
   else {
@@ -233,7 +291,7 @@ void initMqtt(void) {
     mqttClient.onPublish(onMqttPublish);
     Log.verbose(F("initMqtt_first_setup_end\r\n"));
   }
-  //if (strcmp(config.mqtt.host, "") != 0 && config.mqtt.port > 0) {
+  
   if (strcmp(config.mqtt.host, "") != 0 && config.mqtt.port > 0) {
     mqttClient.setServer("mqtt_dev.lan", config.mqtt.port);
   }
@@ -244,7 +302,17 @@ void initMqtt(void) {
   mqttClient.setClientId(config.host);
   mqttClient.setKeepAlive(MQTT_KEEP_ALIVE);
   mqttClient.setCleanSession(true);
-  mqttClient.setWill(MQTT_TOPIC_LSW , 1, true, "0");
+
+  char message[50] = "";
+  const size_t capacity = JSON_OBJECT_SIZE(2) + 20;
+  StaticJsonDocument<capacity> doc;
+
+  doc["id"] = config.id;
+  doc["state"] = "0";
+
+  serializeJson(doc, message);
+
+  mqttClient.setWill(MQTT_TOPIC_LSW , 1, true, message);
 
   #if ASYNC_TCP_SSL_ENABLED
     if (config.mqtt.protocol == "mqtts") {

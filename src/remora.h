@@ -17,8 +17,8 @@
 // Définir ici les identifiants de
 // connexion à votre réseau Wifi
 // =====================================
-#define DEFAULT_WIFI_SSID PSTR("TheWify")
-#define DEFAULT_WIFI_PASS PSTR("TheWify1.")
+//#define DEFAULT_WIFI_SSID PSTR("")
+//#define DEFAULT_WIFI_PASS PSTR("")
 
 // =====================================
 #define DEFAULT_OTA_PORT  8266

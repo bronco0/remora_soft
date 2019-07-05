@@ -20,14 +20,6 @@
 
 #define MQTT_TOPIC_BASE "micro_pilote/"
 
-// Topic info
-#define MQTT_TOPIC_ONLINE    MQTT_TOPIC_BASE "online"    // remora/online 1 | retain = true
-#define MQTT_TOPIC_SYSTEM    MQTT_TOPIC_BASE "system"    // remora/system {"version": "2.0.0-beta", "board": "Remora v1.5", "ip": "192.168.1.31", "mac": "cd:cf:34:45:fc:4e", "rssi": "64", "freeheap": "2342", } | retain = true
-
-// Topic commande
-#define MQTT_TOPIC_FP_GET     MQTT_TOPIC_BASE "fp/get/#"   // remora/fp/get || remora/fp/get/1
-#define MQTT_TOPIC_FP_SET     MQTT_TOPIC_BASE "fp/set"     // remora/fp/set {"fp1": "C", "fp2": "H"}
-
 // Topic micro pilote info
 #define MQTT_TOPIC_ONLINE     MQTT_TOPIC_BASE "online"    // micro_pilote/online {"id": 1, "state": 1} | retain = true
 #define MQTT_TOPIC_SYSTEM     MQTT_TOPIC_BASE "system"    // micro_pilote/system {"id": 1, "version": "2.0.0-beta", "ip": "192.168.1.31", "mac": "cd:cf:34:45:fc:4e", "rssi": "64", "freeheap": "2342", } | retain = true
@@ -61,6 +53,7 @@ void onMqttPublish(uint16_t);
 void initMqtt(void);
 void disconnectMqtt(void);
 bool mqttIsConnected(void);
-void mqttFpPublish(uint8_t fp = 0, bool force = false);
+void mqttFpPublish(uint8_t fp = 0);
+void mqttConfigPublish(bool error = false);
 
 #endif // MQTT_H
