@@ -1,0 +1,42 @@
+@font-face {
+  font-family: 'jeedom';
+  font-weight: normal;
+  font-style: normal;
+  src: local('jeedom'),
+       url('/fonts/jeedom2.woff') format('woff');
+}
+
+[class^="jeedom-"], [class*=" jeedom-"] {
+  font-family: 'jeedom';
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.jeedom-pilote-confort:before {
+  content: "\e616";
+}
+.jeedom-pilote-confort-1:before {
+  content: "\e635";
+}
+.jeedom-pilote-confort-2:before {
+  content: "\e636";
+}
+.jeedom-pilote-eco:before {
+  content: "\e617";
+}
+.jeedom-pilote-horsgel:before {
+  content: "\e618";
+}
+.jeedom-pilote-arret:before {
+  content: "\e619";
+}
+.jeedom-relais-on:before {
+  content: "\e633";
+}
+.jeedom-relais-off:before {
+  content: "\e634";
+}

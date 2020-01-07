@@ -9,6 +9,7 @@ index_dropzone.htm
 precache.html
 
 webdev/js/remora.min.js
+webdev/bower_components/
 
 *.pydevproject
 .project

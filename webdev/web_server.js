@@ -27,7 +27,7 @@ var startTime = Date.now();
 var ws = require('websocket').server;
 var temperature=20;
 var humidity=50;
-var teleinfo = false;
+var teleinfo = true;
 
 
 
@@ -260,7 +260,7 @@ dispatcher.onError(function(req, res) {
         } else {
 
             if (filePath == './') {
-            filePath = './index.htm';
+            filePath = './index.html';
             }
 
             contentType = mime.lookup(filePath);

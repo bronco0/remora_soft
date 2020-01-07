@@ -1,0 +1,150 @@
+<!doctype html>
+
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="Remora dashboard">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <title>Remora</title>
+
+    <!-- Add to homescreen for Chrome on Android -->
+  <!--
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="icon" sizes="192x192" href="images/favicon.ico">
+  -->
+    <!-- Add to homescreen for Safari on iOS -->
+  <!--
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Material Design Lite">
+    <link rel="apple-touch-icon-precomposed" href="images/favicon.ico">
+  -->
+    <!-- Tile icon for Win8 (144x144 + tile color) -->
+  <!--
+    <meta name="msapplication-TileImage" content="images/touch/ms-touch-icon-144x144-precomposed.png">
+    <meta name="msapplication-TileColor" content="#3372DF">
+  -->
+
+    <link rel="shortcut icon" href="images/favicon.ico">
+
+    <!--<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:regular,bold,italic,thin,light,bolditalic,black,medium&amp;lang=en">-->
+    <!--<link rel="stylesheet" href="/css/material-icons.css">-->
+    <link rel="stylesheet" href="css/materialdesignicons.css">
+    <link rel="stylesheet" href="css/jeedom-icons.css">
+    <link rel="stylesheet" href="css/material.min.css">
+    <link rel="stylesheet" href="css/remora.css">
+  </head>
+  <body>
+    <div class="remora-layout mdl-layout mdl-js-layout mdl-layout--fixed-drawer mdl-layout--fixed-header">
+      <header class="remora-header mdl-layout__header mdl-color--grey-100 mdl-color-text--grey-600">
+        <div class="mdl-layout__header-row">
+          <span class="mdl-layout-title">Remora - Tableau de bord</span>
+          <div class="mdl-layout-spacer"></div>
+          <button class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--icon" id="hdrbtn">
+            <i class="material-icons mdi-dots-vertical"></i>
+          </button>
+          <ul class="mdl-menu mdl-js-menu mdl-js-ripple-effect mdl-menu--bottom-right" for="hdrbtn">
+            <li class="mdl-menu__item">Configuration</li>
+          </ul>
+        </div>
+      </header>
+      <div class="remora-drawer mdl-layout__drawer mdl-color--blue-grey-900 mdl-color-text--blue-grey-50">
+        <header class="remora-drawer-header">
+          <img src="images/favicon.ico" class="remora-logo">
+        </header>
+        <nav class="remora-navigation mdl-navigation mdl-color--blue-grey-800">
+          <a class="mdl-navigation__link" href="#" data-nav="zone">
+            <i class="mdl-color-text--blue-grey-300 material-icons mdi-radiator" role="presentation"></i>Zones
+          </a>
+          <a class="mdl-navigation__link" href="#" data-nav="relais">
+            <i class="mdl-color-text--blue-grey-300 material-icons mdi-water-boiler" role="presentation"></i>Chauffe-eau
+          </a>
+          <a class="mdl-navigation__link" href="#" data-nav="tinfo">
+            <i class="mdl-color-text--blue-grey-300 material-icons mdi-information-variant" role="presentation"></i>Téléinformation
+          </a>
+          <a class="mdl-navigation__link" href="#" data-nav="system">
+            <i class="mdl-color-text--blue-grey-300 material-icons mdi-server" role="presentation"></i>Système
+          </a>
+          <div class="mdl-layout-spacer"></div>
+          <a class="mdl-navigation__link" href="#" data-nav="help">
+            <i class="mdl-color-text--blue-grey-400 material-icons mdi-help-circle-outline" role="presentation"></i>
+            <span class="visuallyhidden">Help</span>
+          </a>
+        </nav>
+      </div>
+      <main class="mdl-layout__content mdl-color--grey-100">
+        <div id="remora-zone" class="mdl-grid remora-content" style="display: none">
+          <div class="remora-zone-all mdl-color--white mdl-shadow--2dp mdl-cell mdl-cell--12-col mdl-grid">
+            <div class="mdl-card__title mdl-card--expand mdl-color--teal-300">
+              <h2 class="mdl-card__title-text">Toutes les zones</h2>
+            </div>
+            <div class="mdl-card__actions mdl-card--border">
+              <a href="#" class="mdl-button mdl-js-button mdl-js-ripple-effect">Confort</a>
+              <a href="#" class="mdl-button mdl-js-button mdl-js-ripple-effect">Confort -1</a>
+              <a href="#" class="mdl-button mdl-js-button mdl-js-ripple-effect">Confort -2</a>
+              <a href="#" class="mdl-button mdl-js-button mdl-js-ripple-effect">Éco</a>
+              <a href="#" class="mdl-button mdl-js-button mdl-js-ripple-effect">hors gel</a>
+              <a href="#" class="mdl-button mdl-js-button mdl-js-ripple-effect">Arrêt</a>
+            </div>
+          </div>
+        </div>
+        <div id="remora-relais" class="mdl-grid remora-content" style="display: none;">
+          <div class="mdl-cell mdl-cell--4-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+            <div class="remora-zone mdl-card mdl-shadow--2dp">
+              <div class="mdl-card__title">
+                <div class="mdl-grid">
+                  <div class="mdl-cell mdl-cell--4-col mdl-cell--1-col-phone">
+                    <h2 class="mdl-card__title-text">Relais</h2>
+                  </div>
+                  <div class="mdl-layout-spacer"></div>
+                  <div class="mdl-cell mdl-cell--4-col mdl-cell--1-col-phone">
+                    <span class="icon"><i class="icon"></i></span>
+                  </div>
+                </div>
+              </div>
+              <div class="mdl-card__actions mdl-card--border">
+                <a href="#" class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">Arrêt</a>
+                <a href="#" class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">Auto</a>
+                <a href="#" class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">Marche forcée</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="remora-tinfo" class="mdl-grid remora-content" style="display: flex;">
+          <div class="remora-tinfo-bar mdl-color--white mdl-shadow--2dp mdl-cell mdl-cell--12-col mdl-grid">
+            <div class="mdl-card__title mdl-card--expand mdl-color--teal-300">
+                <h2 class="mdl-card__title-text">Charge courante</h2>
+            </div>
+            <div class="mdl-card__actions mdl-card--border">
+              <h6 class="mdl-card__subtitle-text"></h6>
+              <div id="prog1" class="mdl-progress mdl-js-progress"></div>
+            </div>
+          </div>
+          <table class="remora-tinfo mdl-data-table mdl-js-data-table mdl-cell--12-col mdl-shadow--2dp">
+            <thead>
+              <tr>
+                <th class="mdl-data-table__cell--non-numeric">Etiquette</th>
+                <th class="mdl-data-table__cell--non-numeric">Valeur</th>
+                <th class="mdl-data-table__cell--center">Checksum</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="remora-system" class="mdl-grid remora-content" style="display: none;">
+        </div>
+      </main>
+    </div>
+    <script src="/js/material.min.js"></script>
+    <script src="/js/nav.js"></script>
+    <script src="/js/zone.js"></script>
+    <script src="/js/relais.js"></script>
+    <script src="/js/tinfo.js"></script>
+    <script>
+      document.querySelector('#prog1').addEventListener('mdl-componentupgraded', function(){
+        this.MaterialProgress.setProgress(0);
+      });
+    </script>
+  </body>
+</html>
