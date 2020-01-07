@@ -27,6 +27,8 @@ const char FP_JSON_START[] PROGMEM = "{\r\n";
 const char FP_JSON_END[] PROGMEM = "\r\n}\r\n";
 const char FP_QCQ[] PROGMEM = "\":\"";
 const char FP_QCNL[] PROGMEM = "\",\r\n\"";
+const char FP_QCB[] PROGMEM = "\":";
+const char FP_BNL[] PROGMEM = ",\r\n\"";
 const char FP_RESTART[] PROGMEM = "OK, Redémarrage en cours\r\n";
 const char FP_NL[] PROGMEM = "\r\n";
 
@@ -303,7 +305,10 @@ void getSysJSONData(String & response)
     response += F("RFM69 ");
   #endif
   #ifdef MOD_ADPS
-    response += F("ADPS");
+    response += F("ADPS ");
+  #endif
+  #ifdef MOD_MQTT
+    response += F("MQTT");
   #endif
   response += "\"},\r\n";
 
@@ -441,6 +446,7 @@ void getConfJSONData(String & r)
   r = FPSTR(FP_JSON_START);
 
   r+="\"";
+<<<<<<< HEAD
   r+=CFG_FORM_SSID;            r+=FPSTR(FP_QCQ); r+=config.ssid;            r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_PSK;             r+=FPSTR(FP_QCQ); r+=config.psk;             r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_HOST;            r+=FPSTR(FP_QCQ); r+=config.host;            r+= FPSTR(FP_QCNL);
@@ -455,6 +461,7 @@ void getConfJSONData(String & r)
   r+=CFG_FORM_OTA_PORT;        r+=FPSTR(FP_QCQ); r+=config.ota_port;        r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_LED_BRIGHT;      r+=FPSTR(FP_QCQ);
     r+=map(config.led_bright, 0, 255, 0, 100);   r+= FPSTR(FP_QCNL);
+  r+=map(config.led_bright, 0, 255, 0, 100);   r+= FPSTR(FP_QCNL);
 
   r+=CFG_FORM_COMPTEUR_MODELE; r+=FPSTR(FP_QCQ); r+=config.compteur_modele; r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_COMPTEUR_TIC;    r+=FPSTR(FP_QCQ); r+=config.compteur_tic;    r+= FPSTR(FP_QCNL);
@@ -466,6 +473,17 @@ void getConfJSONData(String & r)
   r+=CFG_FORM_JDOM_ADCO;       r+=FPSTR(FP_QCQ); r+=config.jeedom.adco;     r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_JDOM_FING;       r+=FPSTR(FP_QCQ); r+=getFingerPrint();       r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_JDOM_FREQ;       r+=FPSTR(FP_QCQ); r+=config.jeedom.freq;
+
+  #ifdef MOD_MQTT
+    r+= FPSTR(FP_QCNL);
+    r+=CFG_FORM_MQTT_ACTIVATED; r+=FPSTR(FP_QCB); r+=config.mqtt.isActivated; r+= FPSTR(FP_BNL);
+    r+=CFG_FORM_MQTT_PROTO;     r+=FPSTR(FP_QCQ); r+=config.mqtt.protocol;    r+= FPSTR(FP_QCNL);
+    r+=CFG_FORM_MQTT_HOST;      r+=FPSTR(FP_QCQ); r+=config.mqtt.host;        r+= FPSTR(FP_QCNL);
+    r+=CFG_FORM_MQTT_PORT;      r+=FPSTR(FP_QCQ); r+=config.mqtt.port;        r+= FPSTR(FP_QCNL);
+    r+=CFG_FORM_MQTT_AUTH;      r+=FPSTR(FP_QCB); r+=config.mqtt.hasAuth;     r+= FPSTR(FP_BNL);
+    r+=CFG_FORM_MQTT_USER;      r+=FPSTR(FP_QCQ); r+=config.mqtt.user;        r+= FPSTR(FP_QCNL);
+    r+=CFG_FORM_MQTT_PASS;      r+=FPSTR(FP_QCQ); r+=config.mqtt.password;
+  #endif
 
   r+= F("\"");
   // Json end
@@ -631,64 +649,12 @@ Comments: -
 void tinfoJSON(AsyncWebServerRequest *request)
 {
   #ifdef MOD_TELEINFO
-    ValueList * me = tinfo.getList();
     String response = "";
-
-    // Got at least one ?
-    if (me) {
-      char * p;
-      long value;
-
-      // Json start
-      response += FPSTR(FP_JSON_START);
-      response += F("\"_UPTIME\":");
-      response += uptime;
-      response += FPSTR(FP_NL) ;
-
-      // Loop thru the node
-      while (me->next) {
-        // go to next node
-        me = me->next;
-
-        if (tinfo.calcChecksum(me->name,me->value) == me->checksum) {
-          response += F(",\"") ;
-          response += me->name ;
-          response += F("\":") ;
-
-          // Check if value is a number
-          value = strtol(me->value, &p, 10);
-
-          // conversion failed, add "value"
-          if (*p) {
-            response += F("\"") ;
-            response += me->value ;
-            response += F("\"") ;
-
-          // number, add "value"
-          } else {
-            response += value ;
-          }
-          //formatNumberJSON(response, me->value);
-        } else {
-          response = F(",\"_Error\":\"");
-          response = me->name;
-          response = "=";
-          response = me->value;
-          response = F(" CHK=");
-          response = (char) me->checksum;
-          response = "\"";
-        }
-
-        // Add new line to see more easier end of field
-        response += FPSTR(FP_NL) ;
-
-      }
-      // Json end
-      response += FPSTR(FP_JSON_END) ;
-    } else {
+    getTinfoListJson(response);
+    if (response != "-1")
+      request->send(200, "application/json", response);
+    else
       request->send(404, "text/plain", "No data");
-    }
-    request->send(200, "application/json", response);
   #else
     request->send(404, "text/plain", "teleinfo not enabled");
   #endif
@@ -941,7 +907,7 @@ void handleFormConfig(AsyncWebServerRequest *request)
 			itemp = request->getParam("jdom_port", true)->value().toInt();
 			config.jeedom.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_JDOM_DEFAULT_PORT;
 		}
-   if (request->hasParam("jdom_freq", true)) {
+    if (request->hasParam("jdom_freq", true)) {
       itemp = request->getParam("jdom_freq", true)->value().toInt();
       if (itemp>0 && itemp<=86400){
         // Emoncms Update if needed
@@ -951,7 +917,36 @@ void handleFormConfig(AsyncWebServerRequest *request)
         itemp = 0 ;
       }
       config.jeedom.freq = itemp;
-   }
+    }
+
+    // MQTT
+    #ifdef MOD_MQTT
+      if (request->hasParam("mqtt_isActivated", true)) {
+        config.mqtt.isActivated = true;
+
+        strncpy(config.mqtt.protocol, request->getParam("mqtt_protocol", true)->value().c_str(),   CFG_MQTT_PROTOCOL_SIZE);
+        strncpy(config.mqtt.host,     request->getParam("mqtt_host", true)->value().c_str(),       CFG_MQTT_HOST_SIZE);
+        itemp = request->getParam("mqtt_port", true)->value().toInt();
+        config.mqtt.port = (itemp>=0 && itemp<=65535) ? itemp : CFG_MQTT_DEFAULT_PORT ;
+
+        if (request->hasParam("mqtt_hasAuth", true)) {
+          config.mqtt.hasAuth = true;
+
+          strncpy(config.mqtt.user,     request->getParam("mqtt_user", true)->value().c_str(),       CFG_MQTT_USER_SIZE);
+          strncpy(config.mqtt.password, request->getParam("mqtt_password", true)->value().c_str(),   CFG_MQTT_PASSWORD_SIZE);
+        }
+        else
+            config.mqtt.hasAuth = false;
+      }
+      else
+        config.mqtt.isActivated = false;
+
+      if (mqttIsConnected())
+        disconnectMqtt();
+
+      if (config.mqtt.isActivated && !mqttIsConnected())
+        connectToMqtt();
+    #endif
 
     if ( saveConfig() ) {
       ret = 200;
@@ -1144,7 +1139,7 @@ void handleNotFound(AsyncWebServerRequest *request)
     // http://ip_remora/?fp=CMD
     if ( request->hasParam("fp") ) {
       String value = request->getParam("fp")->value();
-      error += fp(value);
+      error += setfp(value);
     }
 
     // http://ip_remora/?relais=n

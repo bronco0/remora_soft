@@ -301,13 +301,75 @@
                 ledBrightSlider.slider('refresh');
               });
             }
+
             if (form_data.compteur_modele == 'linky') {
               $('.compteur_tic').show();
             } else {
               $('.compteur_tic').hide();
             }
+
+            if (form_data.hasOwnProperty('mqtt_isActivated')) {
+              if (form_data.mqtt_isActivated) {
+                // On check la checkbox
+                $("#mqtt_isActivated").prop('checked', true);
+                // On enable les champs
+                $("[id^='mqtt_']").each(function() {
+                  if ($(this).attr('name') != 'mqtt_isActivated') {
+                    $(this).prop('disabled', false);
+                  }
+                });
+              }
+              else {
+                // on check pas la checkbox
+                $("#pan_mqtt input[name*='mqtt_isActivated']").prop('checked', false);
+                // on disable les champs
+                $("[id^='mqtt_']").each(function() {
+                  if ($(this).attr('name') != 'mqtt_isActivated') {
+                    $(this).prop('disabled', true);
+                  }
+                });
+              }
+            }
+
+            if (form_data.hasOwnProperty('mqtt_hasAuth')) {
+              if (form_data.mqtt_hasAuth && form_data.mqtt_isActivated) {
+                // On check la checkbox
+                $("#mqtt_hasAuth").prop('checked', true);
+                // On enable les champs
+                $("#mqtt_user").prop('disabled', false);
+                $("#mqtt_password").prop('disabled', false);
+                $("#mqtt_user").parents(".form-group").show();
+                $("#mqtt_password").parents(".form-group").show();
+              }
+              else if (form_data.mqtt_hasAuth && !form_data.mqtt_isActivated) {
+                // On check la checkbox
+                $("#mqtt_hasAuth").prop('checked', true);
+                // On enable les champs
+                $("#mqtt_user").parents(".form-group").show();
+                $("#mqtt_password").parents(".form-group").show();
+              }
+              else {
+                // On check la checkbox
+                $("#mqtt_hasAuth").prop('checked', false);
+                // On enable les champs
+                $("#mqtt_user").parents(".form-group").hide();
+                $("#mqtt_password").parents(".form-group").hide();
+                $("#mqtt_user").prop('disabled', true);
+                $("#mqtt_password").prop('disabled', true);
+              }
+            }
+            
+
+            if (form_data.hasOwnProperty('mqtt_host')) {
+              $('#pan_mqtt').show();
+            } else {
+               $('#pan_mqtt').hide();
+            }
           })
-          .fail(function() { console.error( "error while requestiong configuration data" ); });
+          .fail(function(jqxhr, textStatus, error) {
+            var err = textStatus + ", " + error;
+            console.error( "error while requestiong configuration data: " + err );
+          });
         $('#tab_scan_data').bootstrapTable('refresh',{silent:true, showLoading:true, url:'/wifiscan.json'});
       }
       // Onglet de gestion des zones
@@ -455,6 +517,16 @@
           $('#compteur_tic').val('historique');
         }
 
+//        if ($("#mqtt_isActivated").prop("checked"))
+//          $("#mqtt_isActivated").val("true");
+//        else
+//          $("#mqtt_isActivated").val("false");
+//
+//        if ($("#mqtt_hasAuth").prop("checked"))
+//          $("#mqtt_hasAuth").val("true");
+//        else
+//          $("#mqtt_hasAuth").val("test");
+
         $.post('/config_form.json', $("#frm_config").serialize())
           .done( function(msg, textStatus, xhr) {
             Notify(2, 'ok', 'success', 'Enregistrement effectué', xhr.status+' '+msg);
@@ -579,6 +651,44 @@
       tab = url.split('#')[1];
     }
     $('.nav-tabs a[href=#' + tab + ']').tab('show').trigger('shown');
+
+    $('#mqtt_isActivated').click(function() {
+      if ($(this).prop("checked")) {
+        $("[id^='mqtt_'").each(function() {
+          if ($(this).attr('name') != 'mqtt_isActivated') {
+            if ($(this).attr('name') == 'mqtt_user' || $(this).attr('name') == 'mqtt_password')
+              if ($('#mqtt_hasAuth').prop("checked")) 
+                $(this).prop('disabled', false);
+              else
+                $(this).prop('disabled', true);
+            else
+              $(this).prop('disabled', false);
+          }
+        });
+      }
+      else {
+        $("[id^='mqtt_'").each(function() {
+          if ($(this).attr('name') != 'mqtt_isActivated') {
+            $(this).prop('disabled', true);
+          }
+        });
+      }
+    });
+
+    $('#mqtt_hasAuth').click(function() {
+      if ($(this).prop("checked")) {
+        $("#mqtt_user").prop('disabled', false);
+        $("#mqtt_password").prop('disabled', false)
+        $("#mqtt_user").parents(".form-group").show();
+        $("#mqtt_password").parents(".form-group").show();
+      }
+      else {
+        $("#mqtt_user").parents(".form-group").hide();
+        $("#mqtt_password").parents(".form-group").hide();
+        $("#mqtt_user").prop('disabled', true);
+        $("#mqtt_password").prop('disabled', true)
+      }
+    });
 
     // enlever le loader, tout est prêt
     $('body').addClass('loaded');

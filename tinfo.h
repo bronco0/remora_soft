@@ -53,5 +53,6 @@ extern float    myRelestLimit;
 // =======================================
 bool tinfo_setup(bool);
 void tinfo_loop();
+void getTinfoListJson(String &, bool = true);
 
 #endif

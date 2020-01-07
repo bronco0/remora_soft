@@ -29,11 +29,12 @@
 //#define REMORA_BOARD_V15  // Version 1.5
 
 //  Définir ici les modules utilisés sur la carte Remora
-//#define MOD_RF69      /* Module RF  */
-//#define MOD_OLED      /* Afficheur  */
-#define MOD_TELEINFO  /* Teleinfo   */
-//#define MOD_RF_OREGON   /* Reception des sondes orégon */
-#define MOD_ADPS          /* Délestage */
+//#define MOD_RF69       /* Module RF  */
+//#define MOD_OLED       /* Afficheur  */
+#define MOD_TELEINFO   /* Teleinfo   */
+//#define MOD_RF_OREGON  /* Reception des sondes orégon */
+#define MOD_ADPS       /* Délestage */
+//#define MOD_MQTT        /* MQTT */
 
 // Type of OLED
 #define OLED_SH1106
@@ -95,6 +96,7 @@
   #define DEFAULT_OTA_PORT  8266
   #define DEFAULT_OTA_PASS  "Remora_OTA"
   #define DEFAULT_HOSTNAME  "remora"
+  // =====================================
   #include "Arduino.h"
   #include <EEPROM.h>
   #include <FS.h>
@@ -104,6 +106,7 @@
   #include <ESP8266mDNS.h>
   #include <ESPAsyncTCP.h>
   #include <ESPAsyncWebServer.h>
+  #include <AsyncMqttClient.h>
   #include <WiFiUdp.h>
   #include <Ticker.h>
   #include <NeoPixelBus.h>
@@ -169,6 +172,9 @@ extern "C" {
   #include "./tinfo.h"
   #include "./webserver.h"
   #include "./webclient.h"
+  #ifdef MOD_MQTT
+    #include "./mqtt.h"
+  #endif
 
 #endif
 
@@ -215,6 +221,7 @@ extern "C" {
   #undef MOD_RF69
   #undef MOD_OLED
   #undef MOD_RF_OREGON
+  #undef MOD_MQTT
 
   // en revanche le relais l'est sur la carte 1.1
   #ifdef REMORA_BOARD_V11

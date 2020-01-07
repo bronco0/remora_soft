@@ -87,7 +87,6 @@ void initFP(void);
 void conf12(char);
 int setfp(String);
 int setfp_interne(uint8_t fp, char cOrdre);
-int fp(String);
 int relais(String);
 int fnct_relais(String command);
 

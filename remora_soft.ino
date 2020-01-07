@@ -49,6 +49,7 @@
   #include <ESP8266mDNS.h>
   #include <ESPAsyncTCP.h>
   #include <ESPAsyncWebServer.h>
+  #include <AsyncMqttClient.h>
   #include <WiFiUdp.h>
   #include <ArduinoOTA.h>
   #include <Wire.h>
@@ -106,6 +107,10 @@ int my_cloud_disconnect = 0;
   Ticker Tick_conf1_up;
   Ticker Tick_conf2_up;
   Ticker Tick_conf12_5m;
+
+  WiFiEventHandler wifiStaConnectHandler;
+  WiFiEventHandler wifiStaDisconnectHandler;
+  Ticker wifiReconnectTimer;
 
   volatile boolean task_emoncms = false;
   volatile boolean task_jeedom = false;
@@ -328,6 +333,39 @@ int WifiHandleConn(boolean setup = false)
 
 #endif
 
+
+void WifiReConn(void) {
+  WifiHandleConn(true);
+}
+
+/* ======================================================================
+Function: onWifiStaConnect
+Purpose : Connect to MQTT brocker when WiFi STA is UP
+Input   : event
+Output  : 
+Comments: Fire when the WiFi Station get ip
+====================================================================== */
+void onWifiStaConnect(const WiFiEventStationModeGotIP& event) {
+  DebugF("Connecté au WiFi STA, IP : ");
+  Debugln(WiFi.localIP());
+  #ifdef MOD_MQTT
+    if (config.mqtt.isActivated)
+      connectToMqtt();
+  #endif
+}
+
+/* ======================================================================
+Function: onWifiStaDisconnect
+Purpose : Suspend connection to MQTT brocker and reconnect the WiFi STA.
+Input   : event
+Output  : 
+Comments: Fire when the WiFi Station is disconnected
+====================================================================== */
+void onWifiStaDisconnect(const WiFiEventStationModeDisconnected& event) {
+  DebuglnF("Déconecté du WiFi.");
+  wifiReconnectTimer.once(2, WifiReConn);
+}
+
 /* ======================================================================
 Function: timeAgo
 Purpose : format total seconds to human readable text
@@ -482,6 +520,9 @@ void mysetup()
     DebugF("Config size="); Debug(sizeof(_Config));
     DebugF(" (emoncms=");   Debug(sizeof(_emoncms));
     DebugF("  jeedom=");   Debug(sizeof(_jeedom));
+    #ifdef MOD_MQTT
+      DebugF("  mqtt=");   Debug(sizeof(_mqtt));
+    #endif
     Debugln(')');
     Debugflush();
 
@@ -536,6 +577,10 @@ void mysetup()
     #endif
 
     // Connection au Wifi ou Vérification
+    #ifdef MOD_MQTT
+      wifiStaConnectHandler = WiFi.onStationModeGotIP(onWifiStaConnect);
+      wifiStaDisconnectHandler = WiFi.onStationModeDisconnected(onWifiStaDisconnect);
+    #endif
     WifiHandleConn(true);
 
     // OTA callbacks
@@ -718,6 +763,9 @@ void mysetup()
   #endif
   #ifdef MOD_ADPS
     Debug("ADPS ");
+  #endif
+  #ifdef MOD_MQTT
+    Debug("MQTT ");
   #endif
 
   Debugln();

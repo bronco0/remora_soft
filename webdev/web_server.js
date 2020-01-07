@@ -51,6 +51,13 @@ var config = {
     "ap_psk": "",
     "ota_auth": "WifInfo_8266",
     "ota_port": "8266",
+    "mqtt_isActivated": 0,
+    "mqtt_protocol": "mqtt",
+    "mqtt_host": "mqtt.local",
+    "mqtt_port": 1883,
+    "mqtt_hasAuth": 0,
+    "mqtt_user": "",
+    "mqtt_password": "",
 };
 /*
 "domz_host":"domoticz.local",
@@ -119,6 +126,7 @@ return[
     {"na":"Uptime","va":((Date.now()-startTime)/1000).toFixed(0)},
     {"na":"Firmware Version","va":"1.0"},
     {"na":"Compile le","va":"Feb 28 2016 04:35:12"},
+    {"na":"Installed Modules","va":"TELEINFO MQTT"},
     {"na":"SDK Version","va":"1.5.1(e67da894)"},
     {"na":"Chip ID","va":"0x115F0B"},
     {"na":"Boot Version","va":"0x1F"},
