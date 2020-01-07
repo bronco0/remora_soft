@@ -103,6 +103,10 @@ int my_cloud_disconnect = 0;
   Ticker Tick_emoncms;
   Ticker Tick_jeedom;
 
+  Ticker Tick_conf1_up;
+  Ticker Tick_conf2_up;
+  Ticker Tick_conf12_5m;
+
   volatile boolean task_emoncms = false;
   volatile boolean task_jeedom = false;
 
@@ -794,6 +798,10 @@ void mysetup()
   LedRGBON(COLOR_YELLOW);
 
   // Hors gel, désactivation des fils pilotes
+  Tick_conf1_up.attach(297, conf12, '1');
+  Tick_conf2_up.attach(293, conf12, '2');
+  Tick_conf12_5m.attach(300, conf12, '0');
+
   initFP();
 
   // On etteint la LED embarqué du core

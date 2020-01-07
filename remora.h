@@ -288,6 +288,9 @@ extern unsigned long uptime;
 
   extern Ticker Tick_emoncms;
   extern Ticker Tick_jeedom;
+  extern Ticker Tick_conf1_up;
+  extern Ticker Tick_conf2_up;
+  extern Ticker Tick_conf12_5m;
   extern bool   reboot; /* Flag to reboot the ESP */
   extern bool   ota_blink;
   extern bool   got_first;
