@@ -27,7 +27,9 @@ OLEDDisplayUi * ui    = NULL; // Display User Interface
 // frames are the single views that slide from right to left
 FrameCallback frames[] = {
   drawFrameLogo,
-  drawFrameTinfo,
+  #ifdef MOD_TELEINFO
+    drawFrameTinfo,
+  #endif
   drawFrameWifi,
   // Frame RF is activated if MOD_RF69 is defined
   #ifdef MOD_RF69
@@ -238,10 +240,11 @@ Input   : Pointeur sur l'instance de l'afficheur
 Output  : -
 Comments: -
 ====================================================================== */
-
+#ifdef MOD_TELEINFO
 void drawFrameTinfo(OLEDDisplay *oled, OLEDDisplayUiState *state, int16_t x, int16_t y) {
   oled->clear();
   oled->setFont(Roboto_Condensed_Bold_Bold_16);
+  
   if (!(status & STATUS_TINFO)) {
     oled->setTextAlignment(TEXT_ALIGN_CENTER);
     oled->setColor(INVERSE);
@@ -249,7 +252,6 @@ void drawFrameTinfo(OLEDDisplay *oled, OLEDDisplayUiState *state, int16_t x, int
     oled->drawString(x + 64, 24, F("not"));
     oled->drawString(x + 64, 38, F("initialized"));
   }
-  #ifdef MOD_TELEINFO
   else {
     uint8_t percent = 0;
     char buff[20] = "";
@@ -297,9 +299,9 @@ void drawFrameTinfo(OLEDDisplay *oled, OLEDDisplayUiState *state, int16_t x, int
     // Bargraphe de puissance
     drawProgressBarVert(oled, 114, 6, 12, 40, percent);
   }
-  #endif
+  
 }
-
+#endif
 
 /* ======================================================================
 Function: drawFrameLogo

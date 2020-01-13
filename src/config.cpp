@@ -21,16 +21,19 @@
 
 // Configuration structure for whole program
 _Config config;
+_mp_info mp_info;
 
 uint16_t crc16Update(uint16_t crc, uint8_t a)
 {
   int i;
   crc ^= a;
   for (i = 0; i < 8; ++i)  {
-    if (crc & 1)
+    if (crc & 1) {
       crc = (crc >> 1) ^ 0xA001;
-    else
+    }
+    else {
       crc = (crc >> 1);
+    }
   }
   return crc;
 }
@@ -49,8 +52,9 @@ void eepromDump(uint8_t bytesPerRow)
   uint16_t j=0 ;
 
   // default to 16 bytes per row
-  if (bytesPerRow==0)
+  if (bytesPerRow==0) {
     bytesPerRow=16;
+  }
 
   Log.verbose("\r\n");
 
@@ -104,16 +108,48 @@ bool readConfig (bool clear_on_error)
   // CRC Error ?
   if (crc != 0) {
     // Clear config if wanted
-    if (clear_on_error)
+    if (clear_on_error) {
       memset(&config, 0, sizeof( _Config ));
+    }
     return false;
   }
 
   // Check the config for new elements Compteur
-  if (config.compteur_modele[0] == '\0')
-    strcpy_P(config.compteur_modele, CFG_COMPTEUR_DEFAULT_MODELE);
-  if (config.compteur_tic[0] == '\0')
-    strcpy_P(config.compteur_tic, CFG_COMPTEUR_DEFAULT_TIC);
+  #ifdef MOD_TELEINFO
+    if (config.compteur_modele[0] == '\0') {
+      strcpy_P(config.compteur_modele, CFG_COMPTEUR_DEFAULT_MODELE);
+    }
+    if (config.compteur_tic[0] == '\0') {
+      strcpy_P(config.compteur_tic, CFG_COMPTEUR_DEFAULT_TIC);
+    }
+  #endif
+
+  #ifdef MOD_EMONCMS
+    if (config.emoncms.port == 0) {
+      config.emoncms.port = CFG_EMON_DEFAULT_PORT;
+    }
+    if (config.emoncms.host[0] == '\0') {
+      strcpy_P(config.emoncms.host, CFG_EMON_DEFAULT_HOST);
+    }
+    if (config.emoncms.url[0] == '\0') {
+      strcpy_P(config.emoncms.url, CFG_EMON_DEFAULT_URL);
+    }
+  #endif
+
+  #ifdef MOD_JEEDOM
+    if (config.jeedom.port == 0) {
+      config.jeedom.port = CFG_JDOM_DEFAULT_PORT;
+    }
+    if (config.jeedom.host[0] == '\0') {
+      strcpy_P(config.jeedom.host, CFG_JDOM_DEFAULT_HOST);
+    }
+    if (config.jeedom.url[0] == '\0') {
+      strcpy_P(config.jeedom.url, CFG_JDOM_DEFAULT_URL);
+    }
+    if (config.jeedom.adco[0] == '\0') {
+      strcpy_P(config.jeedom.adco, CFG_JDOM_DEFAULT_ADCO);
+    }
+  #endif
 
   // Check the config for new elements MQTT
   #ifdef MOD_MQTT
@@ -161,8 +197,9 @@ bool saveConfig (void)
   pconfig = (uint8_t *) &config ;
 
   // For whole size of config structure, write to EEP
-  for (uint16_t i = 0; i < sizeof(_Config); ++i)
+  for (uint16_t i = 0; i < sizeof(_Config); ++i) {
     EEPROM.write(i, *pconfig++);
+  }
 
   // Physically save
   EEPROM.commit();
@@ -215,12 +252,14 @@ void showConfig()
   if (config.config & CFG_LCD)     Log.verbose(F(" LCD\r\n"));
   _wdt_feed();
 
-  Log.verbose(F("\r\n===== Compteur =====\r\nModèle   : "));
-  Log.verbose(config.compteur_modele);
-  Log.verbose(F("\r\nTIC      : "));
-  Log.verbose(config.compteur_tic);
-  Log.verbose("\r\n");
-  _wdt_feed();
+  #ifdef MOD_TELEINFO
+    Log.verbose(F("\r\n===== Compteur =====\r\nModèle   : "));
+    Log.verbose(config.compteur_modele);
+    Log.verbose(F("\r\nTIC      : "));
+    Log.verbose(config.compteur_tic);
+    Log.verbose("\r\n");
+    _wdt_feed();
+  #endif
 
   #ifdef MOD_EMONCMS
     Log.verbose(F("\r\n===== Emoncms =====\r\nhost     : "));
@@ -266,6 +305,14 @@ void showConfig()
   #endif
 
   Log.verbose(F("\r\nLED Bright: %d\r\n"), config.led_bright);
+
+  Log.verbose(F("===== Zones fp =====\r\n"));
+  for (uint8_t i=1; i <= NB_FILS_PILOTES; i++) {
+    if (config.zones_fp.fp[i-1].is_enable) {
+      Log.verbose(config.zones_fp.fp[i-1].name);
+      Log.verbose("\r\n");
+    }
+  }
 }
 #endif
 
@@ -282,15 +329,17 @@ void resetConfig(void)
   memset(&config, 0, sizeof(_Config));
 
   // Set default Hostname
-  sprintf_P(config.host, PSTR("Remora_%06X"), ESP.getChipId());
+  sprintf_P(config.host, DEFAULT_HOSTNAME);
   strcpy_P(config.ota_auth, DEFAULT_OTA_AUTH);
   config.ota_port = DEFAULT_OTA_PORT ;
 
   // Add other init default config here
 
   // Compteur
-  strcpy_P(config.compteur_modele, CFG_COMPTEUR_DEFAULT_MODELE);
-  strcpy_P(config.compteur_tic, CFG_COMPTEUR_DEFAULT_TIC);
+  #ifdef MOD_TELEINFO
+    strcpy_P(config.compteur_modele, CFG_COMPTEUR_DEFAULT_MODELE);
+    strcpy_P(config.compteur_tic, CFG_COMPTEUR_DEFAULT_TIC);
+  #endif
 
   // Emoncms
   #ifdef MOD_EMONCMS
@@ -328,6 +377,35 @@ void resetConfig(void)
 
   config.led_bright = DEFAULT_LED_BRIGHTNESS;
   config.config |= CFG_RGB_LED;
+
+  config.zones_fp.relais_reverse = DEFAULT_RELAIS_REVERSE;
+
+  for (int i=1; i <= NB_REAL_FILS_PILOTES; i++) {
+    uint8_t pins[NB_REAL_FILS_PILOTES*2] = {FP1, FP2, FP3, FP4, FP5, FP6, FP7};
+    config.zones_fp.fp[i-1].id = pins[2*(i-1)];
+    config.zones_fp.fp[i-1].id <<= 16;
+    config.zones_fp.fp[i-1].id = pins[2*(i-1)+1];
+
+    char buff[4];
+    sprintf_P(buff,PSTR("fp%d"), i-1);
+    strcpy_P(config.zones_fp.fp[i-1].name, buff);
+
+    config.zones_fp.fp[i-1].is_enable = true;
+    config.zones_fp.fp[i-1].is_virtual = false;
+  }
+  
+  #ifdef MOD_MICRO
+    for (int i=NB_REAL_FILS_PILOTES + 1; i <= NB_REAL_FILS_PILOTES + NB_VIRTUAL_FILS_PILOTES; i++) {
+      config.zones_fp.fp[i-1].id = 0;
+
+      char buff[4];
+      sprintf_P(buff,PSTR("fp%d"), i-1);
+      strcpy_P(config.zones_fp.fp[i-1].name, buff);
+
+      config.zones_fp.fp[i-1].is_enable = false;
+      config.zones_fp.fp[i-1].is_virtual = true;
+  }
+  #endif
 
   // save back
   saveConfig();

@@ -15,8 +15,7 @@
 
 #include "remora.h"
 
-// Fils pilotes
-#define NB_FILS_PILOTES 7
+#define NB_FILS_PILOTES (NB_REAL_FILS_PILOTES + NB_VIRTUAL_FILS_PILOTES)
 
 // Les fils pilotes sont connectés de la façon suivante sur l'I/O expander
 // # Fil Pilote    MCP IO/Port   Digital Port
@@ -40,21 +39,11 @@
 #define LED_PIN    8
 #define RELAIS_PIN 9
 
-// Carte 1.2
-#if defined (REMORA_BOARD_V12)
-  // Creation macro unique et indépendante du type de
-  // carte pour le controle des I/O
-  #define _digitalWrite(p,v)  mcp.digitalWrite(p,v)
 
-// Carte 1.3+
-#elif defined (REMORA_BOARD_V13) || defined(REMORA_BOARD_V14) || defined(REMORA_BOARD_V15)
-  //#define RELAIS_REVERSE // Decommenter pour inverser le relais (si problème de relais on au lieu de off)
-
-  // Creation macro unique et indépendante du type de
-  // carte pour le controle des I/O
-  // sur la V1.3 on pilote à l'inverse (met à 0 pour passer)
-  #define _digitalWrite(p,v)  mcp.digitalWrite(p,v==0?1:0)
-#endif
+// Creation macro unique et indépendante du type de
+// carte pour le controle des I/O
+// sur la V1.3 on pilote à l'inverse (met à 0 pour passer)
+#define _digitalWrite(p,v)  mcp.digitalWrite(p,v==0?1:0)
 
 #define _pinMode(p,v) mcp.pinMode(p,v)
 
@@ -64,10 +53,7 @@
 
 // Variables exported to other source file
 // ========================================
-//extern Adafruit_MCP23017 mcp;
-//extern int SortiesFP[];
 extern char etatFP[];
-//extern char memFP[];
 extern uint8_t nivDelest;
 extern uint8_t plusAncienneZoneDelestee;
 extern unsigned long timerDelestRelest;

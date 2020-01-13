@@ -30,8 +30,8 @@ unsigned long uptime = 0;
 bool first_setup;
 bool got_first = false;
 
-// Nombre de deconexion cloud detectée
-int my_cloud_disconnect = 0;
+// Nombre de deconexion wifi detectée
+int wifi_disconnect = 0;
 
 // ESP8266 WebServer
 AsyncWebServer server(80);
@@ -115,9 +115,9 @@ int WifiHandleConn(boolean setup = false)
 
     #if defined (DEFAULT_WIFI_SSID) && defined (DEFAULT_WIFI_PASS)
       Log.verbose(F("Connection au Wifi : "));
-      Log.verbose(F(DEFAULT_WIFI_SSID));
+      Log.verbose(DEFAULT_WIFI_SSID);
       Log.verbose(F(" avec la clé '"));
-      Log.verbose(F(DEFAULT_WIFI_PASS));
+      Log.verbose(DEFAULT_WIFI_PASS);
       Log.verbose(F("'...\r\n"));
 
       WiFi.begin(DEFAULT_WIFI_SSID, DEFAULT_WIFI_PASS);
@@ -172,14 +172,14 @@ int WifiHandleConn(boolean setup = false)
     // not connected ? start AP
     } else {
       Log.verbose(F("Erreur, passage en point d'acces "));
-      Log.verbose(F(DEFAULT_HOSTNAME));
+      Log.verbose(DEFAULT_HOSTNAME);
 
       // protected network
       Log.verbose(F(" avec la clé '"));
       if (*config.ap_psk) {
         Log.verbose(config.ap_psk);
       } else {
-        Log.verbose(F(DEFAULT_WIFI_AP_PASS));
+        Log.verbose(DEFAULT_WIFI_AP_PASS);
       }
       Log.verbose(F("'\r\n"));
 
@@ -206,9 +206,9 @@ int WifiHandleConn(boolean setup = false)
      ArduinoOTA.setHostname(DEFAULT_HOSTNAME);
      if (*config.ota_auth) {
        ArduinoOTA.setPassword(config.ota_auth);
-     }/* else {
-       ArduinoOTA.setPassword(DEFAULT_OTA_PASS);
-     }*/
+     } else {
+       ArduinoOTA.setPassword(DEFAULT_OTA_AUTH);
+     }
      ArduinoOTA.begin();
 
     // just in case your sketch sucks, keep update OTA Available
@@ -241,12 +241,13 @@ Output  :
 Comments: Fire when the WiFi Station get ip
 ====================================================================== */
 void onWifiStaConnect(const WiFiEventStationModeGotIP& event) {
-  Log.notice(F("Connecté au WiFi STA, IP : "));
+  Log.notice(F("\r\nConnecté au WiFi STA, IP : "));
   Log.notice(WiFi.localIP().toString().c_str());
   #ifdef MOD_MQTT
     if (config.mqtt.isActivated && !mqttClient.connected() && !first_setup)
       connectToMqtt();
   #endif
+  LedRGBON(COLOR_GREEN);
 }
 
 /* ======================================================================
@@ -257,7 +258,9 @@ Output  :
 Comments: Fire when the WiFi Station is disconnected
 ====================================================================== */
 void onWifiStaDisconnect(const WiFiEventStationModeDisconnected& event) {
-  Log.error(F("Déconecté du WiFi.\r\n"));
+  Log.error(F("\r\nDéconecté du WiFi.\r\n"));
+  wifi_disconnect++;
+  LedRGBON(COLOR_RED);
   wifiReconnectTimer.once(2, WifiReConn);
 }
 
@@ -378,7 +381,7 @@ void setup()
   #ifdef MOD_EMONCMS
     Log.verbose(F("EMONCMS "));
   #endif
-  #ifdef MOF_JEEDOM
+  #ifdef MOD_JEEDOM
     Log.verbose(F("JEEDOM "));
   #endif
   #ifdef MOD_MQTT
@@ -409,9 +412,9 @@ void mysetup()
 
   // Our configuration is stored into EEPROM
   EEPROM.begin(sizeof(_Config));
-  //EEPROM.begin(1024);
 
   Log.verbose(F("Config size = %l\r\n"), sizeof(_Config));
+  Log.verbose(F(" - zone fp = %l\r\n"), sizeof(_zones_fp));
   #ifdef MOD_EMONCMS
     Log.verbose(F(" - emoncms = %l\r\n"), sizeof(_emoncms));
   #endif
@@ -422,7 +425,6 @@ void mysetup()
     Log.verbose(F(" - mqtt = %l\r\n"), sizeof(_mqtt));
   #endif
 
-
   // Check File system init
   if (SPIFFS.begin()) {
       // Serious problem
@@ -431,18 +433,20 @@ void mysetup()
   else {
     Log.notice(F("SPIFFS Mount succesfull\r\n"));
 
-    Dir dir = SPIFFS.openDir("/");
-    while (dir.next()) {
-      String fileName = dir.fileName();
-      size_t fileSize = dir.fileSize();
-      Log.verbose(F("FS File: "));
-      Log.verbose(fileName.c_str());
-      Log.verbose(F("size: %l\r\n"), fileSize);
-      _wdt_feed();
-    }
+    #if LOG_LEVEL == LOG_LEVEL_VERBOSE
+      Dir dir = SPIFFS.openDir("/");
+      while (dir.next()) {
+        String fileName = dir.fileName();
+        size_t fileSize = dir.fileSize();
+        Log.verbose(F("FS File: "));
+        Log.verbose(fileName.c_str());
+        Log.verbose(F("size: %l\r\n"), fileSize);
+        _wdt_feed();
+      }
+    #endif
   }
 
-  // Read Configuration from EEP
+  // Read Configuration from EEPROM
   if (!readConfig()) {
     // Reset Configuration
     resetConfig();
@@ -453,11 +457,10 @@ void mysetup()
     // Indicate the error in global flags
     config.config |= CFG_BAD_CRC;
 
-
     Log.error(F("Read Configuration => Reset to default\r\n"));
   }
   else {
-    Log.verbose(F("Read Configuration => Good CRC, not set!\r\n"));
+    Log.verbose(F("Read Configuration => Good CRC !\r\n"));
   }
 
   #ifndef DISABLE_LOGGING
@@ -491,7 +494,7 @@ void mysetup()
 
   // OTA callbacks
   ArduinoOTA.onStart([]() {
-    if (ArduinoOTA.getCommand() == U_SPIFFS) {
+    if (ArduinoOTA.getCommand() == U_FS) {
       Log.verbose(F("OTA : upload SPIFFS\r\n"));
       SPIFFS.end(); // Arret du SPIFFS, sinon plantage de la mise à jour
     }
@@ -722,10 +725,10 @@ Comments: -
 void loop()
 {
   //static bool refreshDisplay = false;
-  static bool lastcloudstate;
+  //static bool last_state;
   static unsigned long previousMillis = 0;  // last time update
   unsigned long currentMillis = millis();
-  bool currentcloudstate ;
+  //bool current_state ;
 
   // our own setup
   if (first_setup) {
@@ -745,7 +748,7 @@ void loop()
     previousMillis = currentMillis;
     uptime++;
     //refreshDisplay = true ;
-    #ifdef BLYNK_AUTH
+  #ifdef BLYNK_AUTH
       if ( Blynk.connected() ) {
         String up    = String(uptime) + "s";
         String papp  = String(mypApp) + "W";
@@ -753,11 +756,9 @@ void loop()
         Blynk.virtualWrite(V0, up, papp, iinst, mypApp);
         _yield();
       }
-    #endif
   } else {
-    #ifdef BLYNK_AUTH
       Blynk.run(); // Initiates Blynk
-    #endif
+  #endif
   }
 
   #ifdef MOD_TELEINFO
@@ -786,16 +787,16 @@ void loop()
   #endif
 
   // recupération de l'état de connexion au Wifi
-  currentcloudstate = WiFi.status() == WL_CONNECTED ? true : false;
+  /*current_state = WiFi.status() == WL_CONNECTED ? true : false;
 
-  // La connexion cloud vient de chager d'état ?
-  if (lastcloudstate != currentcloudstate)
+  // La connexion Wifi vient de chager d'état ?
+  if (last_state != current_state)
   {
     // Mise à jour de l'état
-    lastcloudstate=currentcloudstate;
+    last_state = current_state;
 
     // on vient de se reconnecter ?
-    if (currentcloudstate)
+    if (current_state)
     {
       // led verte
       LedRGBON(COLOR_GREEN);
@@ -808,10 +809,8 @@ void loop()
       LedRGBON(COLOR_RED);
     }
   }
+  */
 
-  // Connection au Wifi ou Vérification
-  // Webserver
-  //server.handleClient();
   ArduinoOTA.handle();
 
   #ifdef MOD_EMONCMS

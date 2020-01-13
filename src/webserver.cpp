@@ -290,7 +290,7 @@ void getSysJSONData(String & response)
     strcat_P(buffer, PSTR("EMONCMS "));
   #endif
   #ifdef MOD_JEEDOM
-    strcstrcat_Pat(buffer, PSTR("JEEDOM "));
+    strcat_P(buffer, PSTR("JEEDOM "));
   #endif
   doc["modules"] = buffer;
   
@@ -376,8 +376,10 @@ void getConfJSONData(String & r)
   r+=CFG_FORM_LED_BRIGHT;      r+=FPSTR(FP_QCQ);
   r+=map(config.led_bright, 0, 255, 0, 100);   r+= FPSTR(FP_QCNL);
 
+  #ifdef MOD_TELEINFO
   r+=CFG_FORM_COMPTEUR_MODELE; r+=FPSTR(FP_QCQ); r+=config.compteur_modele; r+= FPSTR(FP_QCNL);
   r+=CFG_FORM_COMPTEUR_TIC;    r+=FPSTR(FP_QCQ); r+=config.compteur_tic;    r+= FPSTR(FP_QCNL);
+  #endif
 
   #ifdef MOD_JEEDOM
   r+=CFG_FORM_JDOM_HOST;       r+=FPSTR(FP_QCQ); r+=config.jeedom.host;     r+= FPSTR(FP_QCNL);
@@ -796,8 +798,10 @@ void handleFormConfig(AsyncWebServerRequest *request)
     }
 
     // Modele compteur
+    #ifdef MOD_TELEINFO
     strncpy(config.compteur_modele, request->getParam("compteur_modele", true)->value().c_str(), CFG_COMPTEUR_MODELE_SIZE);
     strncpy(config.compteur_tic,    request->getParam("compteur_tic", true)->value().c_str(),    CFG_COMPTEUR_TIC_SIZE);
+    #endif
 
     #ifdef MOD_EMONCMS
       // Emoncms
@@ -923,7 +927,7 @@ void handle_fw_upload(AsyncWebServerRequest *request, String filename, size_t in
     int command = U_FLASH;
     Log.verbose(F("Magic Byte: %02X\n"), data[0]);
     if (data[0] != 0xE9) {
-      command = U_SPIFFS;
+      command = U_FS;
       SPIFFS.end();
       Log.verbose(F(" Command U_SPIFFS "));
     }

@@ -12,22 +12,14 @@
 
 #include "pilotes.h"
 
-#if (NB_FILS_PILOTES == 7)
-  int SortiesFP[NB_FILS_PILOTES*2] = {FP1, FP2, FP3, FP4, FP5, FP6, FP7};
-#elif (NB_FILS_PILOTES == 6)
-  int SortiesFP[NB_FILS_PILOTES*2] = {FP1, FP2, FP3, FP4, FP5, FP6};
-#else
-  #error "Définition du nombre de fils pilotes inccorect"
-#endif
-
 char etatFP[NB_FILS_PILOTES+1] = "";
-char memFP[NB_FILS_PILOTES+1] = ""; //Commandes des fils pilotes mémorisées (utile pour le délestage/relestage)
+char memFP[NB_FILS_PILOTES+1]  = ""; //Commandes des fils pilotes mémorisées (utile pour le délestage/relestage)
 int etatrelais = 0; // Etat du relais
 int fnctRelais = 2; // Mode de fonctionnement du relais
 #ifdef MOD_ADPS
   uint8_t nivDelest = 0; // Niveau de délestage actuel (par défaut = 0 pas de délestage)
   uint8_t plusAncienneZoneDelestee = 1; // Numéro de la zone qui est délestée depuis le plus de temps (entre 1 et nombre de zones)
-  unsigned long timerDelestRelest = 0; // Timer de délestage/relestage
+  unsigned long timerDelestRelest  = 0; // Timer de délestage/relestage
 #endif
 
 // Instanciation de l'I/O expander
@@ -67,7 +59,7 @@ void conf12(char state)
     cOrdre = 'O';
   }
 
-  for (uint8_t fp=1; fp<=NB_FILS_PILOTES; fp+=1) {
+  for (uint8_t fp=1; fp <= NB_REAL_FILS_PILOTES; fp++) {
     if ( (memFP[fp-1] == state && state != '0') || ((memFP[fp-1] == '1' || memFP[fp-1] == '2') && state == '0') ) {
       Log.verbose(F("conf12 return : %d\r\n"), setfp_interne(fp, cOrdre));
     }
@@ -119,7 +111,7 @@ int setfp(String command)
 
     if ((fp > 0 || fp <= NB_FILS_PILOTES) ||
         (cOrdre == 'C' && cOrdre == 'E' && cOrdre == 'H' && cOrdre == 'A' && cOrdre == '1' && cOrdre == '2')) {
-      memFP[fp-1] = cOrdre; // On mémorise toujours la commande demandée
+      memFP[fp-1] = cOrdre;              // On mémorise toujours la commande demandée
       char cOrdreEnCours = etatFP[fp-1]; // Quel est l'état actuel du fil pilote?
       if (cOrdreEnCours != 'D')
       {
@@ -151,7 +143,7 @@ int setfp(String command)
       if (cOrdre != '-' ) {
         if ( (fp > 0 || fp <= NB_FILS_PILOTES) ||
           (cOrdre == 'C' && cOrdre == 'E' && cOrdre == 'H' && cOrdre == 'A' && cOrdre == '1' && cOrdre == '2')) {
-          memFP[fp-1] = cOrdre; // On mémorise toujours la commande demandée
+          memFP[fp-1] = cOrdre;              // On mémorise toujours la commande demandée
           char cOrdreEnCours = etatFP[fp-1]; // Quel est l'état actuel du fil pilote?
           if (cOrdreEnCours != 'D') {
             // ok ici au cas ou la commande setFP n'est pas bonne
@@ -204,7 +196,6 @@ int setfp_interne(uint8_t fp, char cOrdre)
   // que la commande est correcte
   // 'D' correspond à délestage
 
-
   Log.verbose(F("setfp_interne : fp=%d ; cOrdre=%c\r\n"), fp, cOrdre);
 
   if ( (fp < 1 || fp > NB_FILS_PILOTES) ||
@@ -217,7 +208,6 @@ int setfp_interne(uint8_t fp, char cOrdre)
     // Commande à passer
     uint8_t fpcmd1 = 0, fpcmd2 = 0;
 
-    // tableau d'index de 0 à 6 pas de 1 à 7
     // on en profite pour Sauver l'état sauf si les conmmandes sont O et Z
     if (cOrdre != 'O' && cOrdre != 'Z') {
       etatFP[fp-1]=cOrdre;
@@ -250,8 +240,15 @@ int setfp_interne(uint8_t fp, char cOrdre)
     }
 
     // On positionne les sorties physiquement
-    _digitalWrite(SortiesFP[2*(fp-1)], fpcmd1);
-    _digitalWrite(SortiesFP[2*(fp-1)+1], fpcmd2);
+    if (!config.zones_fp.fp[fp-1].is_virtual) {
+      _digitalWrite(config.zones_fp.fp[fp-1].id >> 16, fpcmd1);
+      _digitalWrite(config.zones_fp.fp[fp-1].id & 0xF, fpcmd2);
+    }
+    #ifdef MOD_MICRO
+      else {
+        mqttSendToMicroPilote(config.zones_fp.fp[fp-1].id, cOrdre);
+      }
+    #endif
     return (0);
   }
 }
@@ -424,7 +421,7 @@ int relais(String command)
 /* ======================================================================
 Function: relais
 Purpose : selectionne l'état du relais
-Input   : état du relais (0 ouvert, 1 fermé)
+Input   : état du relais (0 ouvert, 1 fermé, 2 Auto -> Téléinfo)
 Output  : etat du relais (0 ou 1)
 Comments: exposée par l'API spark donc attaquable par requête HTTP(S)
 ====================================================================== */

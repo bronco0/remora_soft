@@ -19,7 +19,10 @@
 #include "remora.h"
 
 #ifdef MOD_MQTT
-#define MQTT_TOPIC_BASE "remora/"
+#define MQTT_TOPIC_BASE    "remora/"
+#ifdef MOD_MICRO
+  #define MQTT_TOPIC_BASE_MC "micropilote/"
+#endif
 
 // Topic info
 #define MQTT_TOPIC_ONLINE    MQTT_TOPIC_BASE "online"    // remora/online 1 | retain = true
@@ -29,12 +32,21 @@
 #define MQTT_TOPIC_DELESTAGE MQTT_TOPIC_BASE "delestage" // remora/delestage {"etat": "1", "delestage": "0", "relestage": "0"} | retain = false
 #define MQTT_TOPIC_TINFO     MQTT_TOPIC_BASE "teleinfo"  // remora/teleinfo {"etat": "1", "adco": "03428067", "optarif": "HC", "isousc": "15", "hchc": "000261373", "hchp": "000132345", "ptec": "HC", etc...} | retain = false
 
-
 // Topic commande
 #define MQTT_TOPIC_FP_GET     MQTT_TOPIC_BASE "fp/get/#"   // remora/fp/get || remora/fp/get/1
 #define MQTT_TOPIC_FP_SET     MQTT_TOPIC_BASE "fp/set"     // remora/fp/set {"fp1": "C", "fp2": "H"}
 #define MQTT_TOPIC_RELAIS_GET MQTT_TOPIC_BASE "relais/get" // remora/relais/get
 #define MQTT_TOPIC_RELAIS_SET MQTT_TOPIC_BASE "relais/set" // remora/relais/set {"mode": "1", "status": "1"}
+
+// Topic micro pilote commande
+#ifdef MOD_MICRO
+  #define MQTT_TOPIC_MC_FP_GET     MQTT_TOPIC_BASE_MC "fp/get"      // micropilote/fp/get {"id": 1465464} | retain = false, if id == 0 broadcast for all micro pilote
+  #define MQTT_TOPIC_MC_FP_SET     MQTT_TOPIC_BASE_MC "fp/set"      // micropilote/fp/set {"id": 1465464, "fp": "C"} | retain = false
+  #define MQTT_TOPIC_MC_CONFIG_GET MQTT_TOPIC_BASE_MC "config/get"  // micropilote/config/get {"id": 1465464} | retain = false
+  #define MQTT_TOPIC_MC_CONFIG_SET MQTT_TOPIC_BASE_MC "config/set"  // micropilote/config/set {"id": 1465464, "hostname": "mod1", "ssid": "wifi", "psk": "pass", "mqtt": { "host": mqtt.lan, "port": 1883, ...}} | retain = false
+  #define MQTT_TOPIC_MC_SYSTEM     MQTT_TOPIC_BASE_MC "system"      // micropilote/system {"id": 1465464, "hostname": "mod1", , "freeheap": "2342"} | retain = false
+  #define MQTT_TOPIC_MC_ONLINE     MQTT_TOPIC_BASE_MC "online"      // micropilote/online {"id": 1465464, "state": 1} | retain = true
+#endif
 
 // Last Stand Will Message to be posted when Remora disconnect( /online 0 )
 #define MQTT_TOPIC_LSW MQTT_TOPIC_BASE "online"
@@ -66,6 +78,9 @@ void mqttFpPublish(uint8_t fp = 0, bool force = false);
 void mqttRelaisPublish(void);
 #ifdef MOD_TELEINFO
   void mqttTinfoPublish(void);
+#endif
+#ifdef MOD_MICRO
+  void mqttSendToMicroPilote(uint32_t id, char ordre);
 #endif
 
 #endif // MOD_MQTT

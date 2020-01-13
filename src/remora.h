@@ -36,12 +36,13 @@
 //  Définir ici les modules utilisés sur la carte Remora
 //#define MOD_RF69         /* Module RF  */
 #define MOD_OLED         /* Afficheur  */
-#define MOD_TELEINFO     /* Teleinfo   */
+//#define MOD_TELEINFO     /* Teleinfo   */
 //#define MOD_RF_OREGON    /* Reception des sondes orégon */
 #define MOD_ADPS         /* Délestage */
 #define MOD_MQTT         /* MQTT */
 //#define MOD_EMONCMS      /* Emoncms.org */
 //#define MOD_JEEDOM       /* Jeedom */
+#define MOD_MICRO        /* Micro module pilote */
 
 // Type of OLED
 #ifdef MOD_OLED
@@ -50,25 +51,13 @@
 #endif
 
 // Version logicielle remora
-#define REMORA_SOFT_VERSION "2.0.1"
+#define REMORA_SOFT_VERSION "2.1.0"
 
 // Définir ici votre authentification blynk, cela
 // Activera automatiquement blynk http://blynk.cc
 //#define BLYNK_AUTH "YourBlynkAuthToken"
 
 // Librairies du projet remora pour ESP8266
-// Définir ici les identifiants de
-// connexion à votre réseau Wifi
-// =====================================
-//#define DEFAULT_WIFI_SSID ""
-//#define DEFAULT_WIFI_PASS ""
-#define DEFAULT_WIFI_AP_PASS "Remora_WiFi"
-// =====================================
-#define DEFAULT_OTA_PORT  8266
-#define DEFAULT_OTA_PASS  "Remora_OTA"
-#define DEFAULT_HOSTNAME  "remora"
-
-// =====================================
 // Includes
 #include "Arduino.h"
 #include <ArduinoLog.h>
@@ -149,37 +138,12 @@ extern "C" {
 //#define LOG_LEVEL LOG_LEVEL_FATAL     // fatal errors
 //#define LOG_LEVEL LOG_LEVEL_ERROR     // all errors
 //#define LOG_LEVEL LOG_LEVEL_WARNING   // errors, and warnings
-#define LOG_LEVEL LOG_LEVEL_NOTICE    // errors, warnings and notices
+//#define LOG_LEVEL LOG_LEVEL_NOTICE    // errors, warnings and notices
 //#define LOG_LEVEL LOG_LEVEL_TRACE     // errors, warnings, notices & traces
-//#define LOG_LEVEL LOG_LEVEL_VERBOSE   // all
+#define LOG_LEVEL LOG_LEVEL_VERBOSE   // all
 #define DEBUG_SERIAL  Serial1
 #define DEBUG_INIT              /* Permet d'initialiser la connexion série pour debug */
-
-// I prefix debug macro to be sure to use specific for THIS library
-// debugging, this should not interfere with main sketch or other
-// libraries
-#ifdef DEBUG
-  /*#define Debug(x)     if (config.config & CFG_DEBUG) { DEBUG_SERIAL.print(x); }
-  #define Debugln(x)   if (config.config & CFG_DEBUG) { DEBUG_SERIAL.println(x); }
-  #define DebugF(x)    if (config.config & CFG_DEBUG) { DEBUG_SERIAL.print(F(x)); }
-  #define DebuglnF(x)  if (config.config & CFG_DEBUG) { DEBUG_SERIAL.println(F(x)); }
-  #define Debugf(...)  if (config.config & CFG_DEBUG) { DEBUG_SERIAL.printf(__VA_ARGS__); }
-  #define Debugflush() if (config.config & CFG_DEBUG) { DEBUG_SERIAL.flush(); }*/
-  #define Debug(x)    DEBUG_SERIAL.print(x)
-  #define Debugln(x)  DEBUG_SERIAL.println(x)
-  #define DebugF(x)   DEBUG_SERIAL.print(F(x))
-  #define DebuglnF(x) DEBUG_SERIAL.println(F(x))
-  #define Debugf(...) DEBUG_SERIAL.printf(__VA_ARGS__)
-  #define Debugflush  DEBUG_SERIAL.flush
-//#else
-  #define Debug(x)
-  #define Debugln(x)
-  #define DebugF(x)
-  #define DebuglnF(x)
-  #define Debugf(...)
-  #define Debugflush()
-#endif
-
+//#define DISABLE_LOGGING
 
 #define COLOR_RED     rgb_brightness, 0, 0
 #define COLOR_ORANGE  rgb_brightness, rgb_brightness>>1, 0
@@ -204,15 +168,15 @@ extern "C" {
 
 // Masque de bits pour le status global de l'application
 #define STATUS_MCP    0x0001 // I/O expander detecté
-//#ifdef MOD_OLED
+#ifdef MOD_OLED
   #define STATUS_OLED   0x0002 // Oled detecté
-//#endif
-//#ifdef MOD_RF69
+#endif
+#ifdef MOD_RF69
   #define STATUS_RFM    0x0004 // RFM69  detecté
-//#endif
-//#ifdef MOD_TELEINFO
+#endif
+#ifdef MOD_TELEINFO
   #define STATUS_TINFO  0x0008 // Trame téléinfo detecté
-//#endif
+#endif
 
 // Variables exported to other source file
 // ========================================

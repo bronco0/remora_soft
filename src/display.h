@@ -53,7 +53,9 @@ void drawProgress(OLEDDisplay *display, int percentage, String labeltop, String 
 void drawProgress(OLEDDisplay *display, int percentage, String labeltop);
 void drawProgressBarVert(OLEDDisplay *display, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint8_t progress);
 void drawFrameWifi(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
-void drawFrameTinfo(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
+#ifdef MOD_TELEINFO
+  void drawFrameTinfo(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
+#endif
 void drawFrameLogo(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);
 #ifdef MOD_RF69
   void drawFrameRF(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y);

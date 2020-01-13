@@ -19,9 +19,6 @@
 AsyncMqttClient mqttClient;
 Ticker mqttReconnectTimer;
 Ticker mqttSysinfoTimer;
-//#ifdef MOD_TELEINFO
-  //Ticker mqttTinfoTimer;
-//#endif
 int nbRestart = 0;
 char etatFP_sav[NB_FILS_PILOTES + 1] = "";
 
@@ -82,11 +79,33 @@ void mqttSysinfoPublish(void) {
   }
 #endif
 
+#ifdef MOD_MICRO
+  void mqttSendToMicroPilote(uint32_t id, char ordre){
+    if (config.mqtt.isActivated && mqttIsConnected()) {
+      char message[40];
+      const size_t capacity = JSON_OBJECT_SIZE(2);
+      StaticJsonDocument<capacity> doc;
+
+      doc["id"] = id;
+      doc["fp"] = ordre;
+
+      serializeJson(doc, message);
+
+      Log.verbose(F("message_send = "));
+      Log.verbose(message);
+      Log.verbose("\r\n");
+      if ( mqttClient.publish(MQTT_TOPIC_MC_FP_SET, 1, false, message) == 0 ) {
+        Log.error(F("Mqtt : Erreur publish MP\r\n"));
+      }
+    }
+  }
+#endif
+
 void mqttFpPublish(uint8_t fp, bool force) {
   if (config.mqtt.isActivated && mqttIsConnected()) {
     uint8_t fp_last = NB_FILS_PILOTES;
-    char message[NB_FILS_PILOTES*20];
-    const size_t capacity = JSON_OBJECT_SIZE(NB_FILS_PILOTES) + 50;
+    char message[NB_FILS_PILOTES * 20];
+    const size_t capacity = JSON_OBJECT_SIZE(NB_FILS_PILOTES) + 10 * NB_FILS_PILOTES;
     StaticJsonDocument<capacity> doc;
 
     if (fp >= 0 && fp <= NB_FILS_PILOTES) {
@@ -187,6 +206,14 @@ void onMqttConnect(bool sessionPresent) {
     mqttClient.subscribe(MQTT_TOPIC_FP_GET, 1);
     mqttClient.subscribe(MQTT_TOPIC_RELAIS_SET, 1);
     mqttClient.subscribe(MQTT_TOPIC_RELAIS_GET, 1);
+    mqttClient.subscribe(MQTT_TOPIC_FP_GET, 1);
+    mqttClient.subscribe(MQTT_TOPIC_FP_GET, 1);
+    #ifdef MOD_MICRO
+      mqttClient.subscribe(MQTT_TOPIC_MC_FP_GET, 1);
+      mqttClient.subscribe(MQTT_TOPIC_MC_CONFIG_GET, 1);
+      mqttClient.subscribe(MQTT_TOPIC_MC_SYSTEM, 1);
+      mqttClient.subscribe(MQTT_TOPIC_MC_ONLINE, 1);
+    #endif
   }
 
   // Publish online status in retained mode ( will be set to 0 by lsw when Remora disconnect after MQTT_KEEP_ALIVE as expired ).
@@ -288,7 +315,7 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
   }
   // Set relais
   else if (!strncmp(topic, MQTT_TOPIC_RELAIS_SET, strlen(MQTT_TOPIC_RELAIS_SET))) {
-    const size_t capacity = JSON_OBJECT_SIZE(1) + 10;
+    const size_t capacity = JSON_OBJECT_SIZE(1) + 23;
     StaticJsonDocument<capacity> doc;
 
     deserializeJson(doc, payload);
@@ -298,6 +325,94 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
     Log.verbose("\r\n");
     fnct_relais(doc["mode"]);
   }
+  #ifdef MOD_MICRO
+    // Micro pilote
+    // Get fp
+    else if (!strncmp(topic, MQTT_TOPIC_MC_FP_GET, strlen(MQTT_TOPIC_MC_FP_GET))) {
+      const size_t capacity = JSON_OBJECT_SIZE(2) + 10;
+      StaticJsonDocument<capacity> doc;
+
+      deserializeJson(doc, payload);
+
+      Log.verbose(F("Micro pilote %lu : %c\r\n"), doc["id"].as<uint32_t>(), doc["id"].as<char>());
+      
+      for (int i=NB_REAL_FILS_PILOTES + 1; i >= NB_FILS_PILOTES; i++) {
+        if (config.zones_fp.fp[i-1].id == doc["id"].as<uint32_t>()) {
+          if (etatFP[i-1] != doc["id"].as<char>()) {
+            mqttSendToMicroPilote(doc["id"].as<uint32_t>(), etatFP[i-1]);
+          }
+          break;
+        }
+      }
+      _wdt_feed();
+    }
+    // Get config
+    else if (!strncmp(topic, MQTT_TOPIC_MC_CONFIG_GET, strlen(MQTT_TOPIC_MC_CONFIG_GET))) {
+      const size_t capacity = JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(7) + 515;
+      StaticJsonDocument<capacity> doc;
+
+      deserializeJson(doc, payload);
+
+      // recup index depuis config
+      for (int i=NB_REAL_FILS_PILOTES + 1; i >= NB_FILS_PILOTES; i++) {
+        if (config.zones_fp.fp[i-1].id == doc["id"].as<uint32_t>()) {
+
+          strcpy(mp_info.config[i-1].hostname, doc["hostname"].as<const char *>());
+          strcpy(mp_info.config[i-1].ssid, doc["ssid"].as<const char *>());
+          strcpy(mp_info.config[i-1].ota_auth, doc["ota_auth"].as<const char *>());
+          mp_info.config[i-1].ota_port = doc["ota_port"].as<uint16_t>();
+
+          JsonObject mqtt = doc["mqtt"];
+          strcpy(mp_info.config[i-1].mqtt.host, mqtt["host"].as<const char *>());
+          mp_info.config[i-1].mqtt.port = mqtt["port"].as<uint16_t>();
+          strcpy(mp_info.config[i-1].mqtt.protocol, mqtt["protocol"].as<const char *>());
+          strcpy(mp_info.config[i-1].mqtt.user, mqtt["user"].as<const char *>());
+          strcpy(mp_info.config[i-1].mqtt.password, mqtt["password"].as<const char *>());
+
+          break;
+        }
+      }
+      _wdt_feed();
+    }
+    // Receive sysinfo
+    else if (!strncmp(topic, MQTT_TOPIC_MC_SYSTEM, strlen(MQTT_TOPIC_MC_SYSTEM))) {
+      const size_t capacity = JSON_OBJECT_SIZE(10) + 300;
+      StaticJsonDocument<capacity> doc;
+
+      deserializeJson(doc, payload);
+      for (int i=NB_REAL_FILS_PILOTES + 1; i >= NB_FILS_PILOTES; i++) {
+        if (config.zones_fp.fp[i-1].id == doc["id"].as<uint32_t>()) {
+          mp_info.system[i-1].uptime = doc["uptime"].as<uint32_t>();
+          mp_info.system[i-1].cpu_freq = doc["cpu_freq"].as<uint8>();
+          mp_info.system[i-1].flash_real_size = doc["flash_real_size"].as<uint32_t>();
+          mp_info.system[i-1].firmware_size = doc["firmware_size"].as<uint32_t>();
+          mp_info.system[i-1].free_size = doc["free_size"].as<uint32_t>();
+          mp_info.system[i-1].rssi = doc["rssi"].as<uint32_t>();
+          mp_info.system[i-1].free_ram = doc["free_ram"].as<uint32_t>();
+          strcpy(mp_info.system[i-1].heap_fragmentation, doc["heap_fragmentation"].as<const char *>());
+          strcpy(mp_info.system[i-1].ip, doc["ip"].as<const char *>());
+          break;
+        }
+      }
+      _wdt_feed();
+    }
+    // LWT/ONLINE  => ex: new device
+    else if (!strncmp(topic, MQTT_TOPIC_MC_ONLINE, strlen(MQTT_TOPIC_MC_ONLINE))) {
+      const size_t capacity = JSON_OBJECT_SIZE(2) + 10;
+      StaticJsonDocument<capacity> doc;
+
+      deserializeJson(doc, payload);
+
+      // recup index depuis config
+      for (int i=NB_REAL_FILS_PILOTES + 1; i >= NB_FILS_PILOTES; i++) {
+        if (config.zones_fp.fp[i-1].id == doc["id"].as<uint32_t>()) {
+          mp_info.isOnline[i-1] = doc["state"].as<bool>();
+          break;
+        }
+      }
+      _wdt_feed();
+    }
+  #endif
   else {
     Log.error(F("Mqtt: Bad payload\r\n"));
   }
@@ -339,9 +454,6 @@ void initMqtt(void) {
 
   mqttSysinfoTimer.attach(DELAY_PUBLISH_SYSINFO, mqttSysinfoPublish);
 
-  //#ifdef MOD_TELEINFO
-    //mqttTinfoTimer.attach(DELAY_PUBLISH_TINFO, mqttTinfoPublish);
-  //#endif
   Log.verbose(F("initMqtt_end\r\n"));
 }
 #endif // MOD_MQTT
