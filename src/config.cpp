@@ -98,16 +98,16 @@ bool readConfig (bool clear_on_error)
     crc = crc16Update(crc, data);
   }
 
-  // CRC Error ?
+  // CRC Error ? OR new version
   if (crc != 0) {
-    // Clear config if wanted
-    if (clear_on_error)
-      memset(&config, 0, sizeof( _Config ));
+    return false;
+  }
+  if (config.config_version < CFG_VERSION) {
     return false;
   }
 
   // Check the config for new elements MQTT
-  if (config.mqtt.isActivated != true && config.mqtt.isActivated != false)
+  /*if (config.mqtt.isActivated != true && config.mqtt.isActivated != false)
     config.mqtt.isActivated = CFG_MQTT_DEFAULT_ACTIVATED;
   if (config.mqtt.protocol[0] == '\0')
     strcpy_P(config.mqtt.protocol, CFG_MQTT_DEFAULT_PROTOCOL);
@@ -115,9 +115,13 @@ bool readConfig (bool clear_on_error)
     strcpy_P(config.mqtt.host, CFG_MQTT_DEFAULT_HOST);
   if (config.mqtt.port == 0)
     config.mqtt.port = CFG_MQTT_DEFAULT_PORT;
+  if (config.mqtt.user[0] == '\0')
+    strcpy_P(config.mqtt.host, CFG_MQTT_DEFAULT_USER);
+  if (config.mqtt.password[0] == '\0')
+    strcpy_P(config.mqtt.host, CFG_MQTT_DEFAULT_PASSWORD);
   if (config.mqtt.hasAuth != true && config.mqtt.hasAuth != false)
     config.mqtt.hasAuth = CFG_MQTT_DEFAULT_AUTH;
-
+  */
   return true ;
 }
 
@@ -183,6 +187,8 @@ Comments: -
 #ifndef DISABLE_LOGGING
 void showConfig()
 {
+  Log.verbose(F("== Config Version ==\r\n"));
+  Log.verbose(F("%d\r\n"), config.config_version);
   Log.verbose(F("===== Wifi =====\r\nssid     : "));
   Log.verbose(config.ssid);
   Log.verbose(F("\r\npsk      : "));
@@ -203,6 +209,8 @@ void showConfig()
   Log.verbose(config.mqtt.protocol);
   Log.verbose(F("\r\nHasAuth     : %T\r\nuser        : "), config.mqtt.hasAuth);
   Log.verbose(config.mqtt.user);
+  Log.verbose(F("\r\npassword    : "));
+  Log.verbose(config.mqtt.password);
   Log.verbose("\r\n");
   _wdt_feed();
 }
@@ -220,8 +228,11 @@ void resetConfig(void)
   // enable default configuration
   memset(&config, 0, sizeof(_Config));
 
+  config.config_version = CFG_VERSION;
+  config.id = system_get_chip_id();
+
   // Set default Hostname
-  char hostname[40] = "";
+  char hostname[32] = "";
   char chipId[10] = "";
   strcat_P(hostname, DEFAULT_HOSTNAME);
   sprintf(chipId, PSTR("_%06X"), system_get_chip_id());
@@ -244,9 +255,9 @@ void resetConfig(void)
   strcpy_P(config.mqtt.protocol, CFG_MQTT_DEFAULT_PROTOCOL);
   strcpy_P(config.mqtt.host, CFG_MQTT_DEFAULT_HOST);
   config.mqtt.port = CFG_MQTT_DEFAULT_PORT;
+  strcpy_P(config.mqtt.user, CFG_MQTT_DEFAULT_USER);
+  strcpy_P(config.mqtt.password, CFG_MQTT_DEFAULT_PASSWORD);
   config.mqtt.hasAuth = CFG_MQTT_DEFAULT_AUTH;
-  strcpy_P(config.mqtt.user, "");
-  strcpy_P(config.mqtt.password, "");
 
   // save back
   saveConfig();

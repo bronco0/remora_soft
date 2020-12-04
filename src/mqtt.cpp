@@ -83,17 +83,20 @@ void mqttSysinfoPublish(void) {
   }
 }
 
-void mqttFpPublish(uint8_t fp) {
+void mqttFpPublish() {
   if (config.mqtt.isActivated && mqttIsConnected()) {
-    char message[NB_FILS_PILOTES*20 + 4];
-    const size_t capacity = JSON_OBJECT_SIZE(NB_FILS_PILOTES + 1) + 50;
+    char message[32];
+    char value[2];
+    const size_t capacity = JSON_OBJECT_SIZE(2) + 50;
     StaticJsonDocument<capacity> doc;
-    
+
     doc["id"] = config.id;
-    doc["fp1"] = etatFP[0];
-   
+    value[0] = etatFP[0];
+    value[1] = 0;
+    doc["fp"] = value;
+
     serializeJson(doc, message);
-  
+
     Log.verbose(F("message_send = "));
     Log.verbose(message);
     Log.verbose("\r\n");
@@ -118,10 +121,27 @@ void onMqttConnect(bool sessionPresent) {
     mqttClient.subscribe(MQTT_TOPIC_FP_GET, 1);
     mqttClient.subscribe(MQTT_TOPIC_CONFIG_SET, 1);
     mqttClient.subscribe(MQTT_TOPIC_CONFIG_GET, 1);
+    mqttClient.subscribe(MQTT_TOPPIC_REMORA_ONLINE, 1);
   }
 
   // Publish online status in retained mode ( will be set to 0 by lsw when Remora disconnect after MQTT_KEEP_ALIVE as expired ).
-  mqttClient.publish(MQTT_TOPIC_LSW,1,true,"1");
+  //char message[50] = "";
+  String message;
+  message.reserve(50);
+  const size_t capacity = JSON_OBJECT_SIZE(2) + 50;
+  StaticJsonDocument<capacity> doc;
+
+  doc["id"]    = config.id;
+  doc["state"] = true;
+
+  serializeJson(doc, message);
+
+  Log.verbose(F("on LSW message = "));
+  Log.verbose(message.c_str());
+  Log.verbose("\r\n");
+
+  //mqttClient.setWill(MQTT_TOPIC_LSW , 1, true, "{\"id\":15387855,\"state\":\"1\"}");
+  mqttClient.publish(MQTT_TOPIC_LSW , 1, true, message.c_str());
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason) {
@@ -152,13 +172,18 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
   Log.verbose(topic);
   Log.verbose("\r\n");
 
-    // Get fp information
-  if (!strcmp_P(topic, PSTR(MQTT_TOPIC_FP_GET))) {
-    const size_t capacity = JSON_OBJECT_SIZE(1) + 10;
+  // Remora online
+  if (!strcmp_P(topic, PSTR(MQTT_TOPPIC_REMORA_ONLINE))) {
+    const size_t capacity = JSON_OBJECT_SIZE(2) + 50;
     StaticJsonDocument<capacity> doc;
+
     deserializeJson(doc, payload);
-    if (doc["id"] == config.id) {
-      mqttFpPublish(1);
+    
+    if (doc["state"].as<boolean>()) {
+      mqttFpPublish();
+    }
+    else {
+      setfp("1H");
     }
   }
   // Set fp
@@ -170,11 +195,12 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
     deserializeJson(doc, payload);
 
     if (doc["id"] == config.id) {
-      if (doc["fp1"].isNull()) {
+      if (doc["fp"].isNull()) {
         strcat(message, "-");
+        mqttFpPublish();
       }
       else {
-        strcat(message, doc["fp1"]);
+        strcat(message, doc["fp"]);
       }
 
       Log.verbose(F("message = "));
@@ -183,14 +209,7 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
       setfp(message);
     }
   }
-  else if (!strcmp_P(topic, PSTR(MQTT_TOPIC_CONFIG_GET))) {
-    const size_t capacity = JSON_OBJECT_SIZE(1) + 10;
-    StaticJsonDocument<capacity> doc;
-    deserializeJson(doc, payload);
-    if (doc["id"] == config.id) {
-      mqttConfigPublish();
-    }
-  }
+  // Set config
   else if (!strcmp_P(topic, PSTR(MQTT_TOPIC_CONFIG_SET))) {
     bool changed_ota_auth = false;
     bool changed_mqtt_param = false;
@@ -204,7 +223,7 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
       if (!doc["hostname"].isNull()) {
         strncpy(config.host, doc["hostname"].as<const char *>(), CFG_HOSTNAME_SIZE);
       }
-      
+
       // WifInfo
       if (!doc["ssid"].isNull()) {
         strncpy(config.ssid, doc["ssid"].as<const char *>(), CFG_SSID_SIZE);
@@ -254,8 +273,8 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
         if (changed_mqtt_param) {
           if (mqttIsConnected()) {
             disconnectMqtt();
-          } 
-      
+          }
+
           if (config.mqtt.isActivated && !mqttIsConnected()) {
             connectToMqtt();
           }
@@ -291,9 +310,9 @@ void initMqtt(void) {
     mqttClient.onPublish(onMqttPublish);
     Log.verbose(F("initMqtt_first_setup_end\r\n"));
   }
-  
+
   if (strcmp(config.mqtt.host, "") != 0 && config.mqtt.port > 0) {
-    mqttClient.setServer("mqtt_dev.lan", config.mqtt.port);
+    mqttClient.setServer(config.mqtt.host, config.mqtt.port);
   }
   if (config.mqtt.hasAuth && (strcmp(config.mqtt.user, "") != 0 || strcmp(config.mqtt.password, "") != 0)) {
     mqttClient.setCredentials(config.mqtt.user, config.mqtt.password);
@@ -303,16 +322,23 @@ void initMqtt(void) {
   mqttClient.setKeepAlive(MQTT_KEEP_ALIVE);
   mqttClient.setCleanSession(true);
 
-  char message[50] = "";
-  const size_t capacity = JSON_OBJECT_SIZE(2) + 20;
+
+  String message;
+  message.reserve(50);
+  const size_t capacity = JSON_OBJECT_SIZE(2) + 50;
   StaticJsonDocument<capacity> doc;
 
-  doc["id"] = config.id;
-  doc["state"] = "0";
+  doc["id"]    = config.id;
+  doc["state"] = false;
 
   serializeJson(doc, message);
 
-  mqttClient.setWill(MQTT_TOPIC_LSW , 1, true, message);
+  Log.verbose(F("set will message = "));
+  Log.verbose(message.c_str());
+  Log.verbose("\r\n");
+
+  //mqttClient.setWill(MQTT_TOPIC_LSW , 1, true, "{\"id\":15387855,\"state\":\"0\"}");
+  mqttClient.setWill(MQTT_TOPIC_LSW , 1, true, message.c_str());
 
   #if ASYNC_TCP_SSL_ENABLED
     if (config.mqtt.protocol == "mqtts") {
@@ -320,7 +346,7 @@ void initMqtt(void) {
     }
   #endif
 
-  //mqttSysinfoTimer.attach(DELAY_PUBLISH_SYSINFO, mqttSysinfoPublish);
+  mqttSysinfoTimer.attach(DELAY_PUBLISH_SYSINFO, mqttSysinfoPublish);
 
   Log.verbose(F("initMqtt_end\r\n"));
 }

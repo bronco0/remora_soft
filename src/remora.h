@@ -10,21 +10,8 @@
 #define __REMORA_H__
 
 // Version logicielle remora
-#define REMORA_SOFT_VERSION "0.0.1"
+#define REMORA_SOFT_VERSION "0.1.0"
 
-#define DEFAULT_HOSTNAME  PSTR("Micro_pilote")
-
-// Définir ici les identifiants de
-// connexion à votre réseau Wifi
-// =====================================
-//#define DEFAULT_WIFI_SSID PSTR("")
-//#define DEFAULT_WIFI_PASS PSTR("")
-
-// =====================================
-#define DEFAULT_OTA_PORT  8266
-#define DEFAULT_OTA_AUTH  PSTR("OTA_Remora")
-
-// =====================================
 // Includes
 #include "Arduino.h"
 #include <ArduinoLog.h>

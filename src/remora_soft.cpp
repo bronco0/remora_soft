@@ -48,9 +48,9 @@ int WifiHandleConn(boolean setup = false)
   if (setup) {
     // Feed the dog
     _wdt_feed();
-    Log.verbose(F("========== SDK Saved parameters Start"));
+    Log.verbose(F("== Wifi debug parameters\r\n"));
     WiFi.printDiag(DEBUG_SERIAL);
-    Log.verbose(F("========== SDK Saved parameters End\r\n"));
+    Log.verbose(F("\r\n\r\n"));
 
     if (*config.ssid) {
       Log.verbose(F("Connection au Wifi : "));
@@ -72,7 +72,7 @@ int WifiHandleConn(boolean setup = false)
       }
     }
 
-    timeout = 25; // 25 * 200 ms = 5 sec time out
+    timeout = 50; // 25 * 200 ms = 5 sec time out
 
     // 200 ms loop
     while ( ((ret = WiFi.status()) != WL_CONNECTED) && timeout )
@@ -346,10 +346,10 @@ Comments: -
 void loop()
 {
   //static bool refreshDisplay = false;
-  static bool lastcloudstate;
+  //static bool lastcloudstate;
   static unsigned long previousMillis = 0;  // last time update
   unsigned long currentMillis = millis();
-  bool currentcloudstate ;
+  //bool currentcloudstate ;
 
   // our own setup
   if (first_setup) {
@@ -370,7 +370,7 @@ void loop()
     uptime++;
     //refreshDisplay = true ;
   }
-
+/*
   // recupération de l'état de connexion au Wifi
   currentcloudstate = WiFi.status() == WL_CONNECTED ? true : false;
 
@@ -388,7 +388,7 @@ void loop()
       Log.error(F("Perte de conexion #%d\r\n"), my_cloud_disconnect);
     }
   }
-
+*/
   // Connection au Wifi ou Vérification
   // Webserver
   //server.handleClient();

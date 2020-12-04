@@ -18,17 +18,20 @@
 
 #include "remora.h"
 
-#define MQTT_TOPIC_BASE "micro_pilote/"
+#define MQTT_TOPIC_BASE "micropilote/"
+#define MQTT_TOPIC_REMORA_BASE "remora/"
 
 // Topic micro pilote info
-#define MQTT_TOPIC_ONLINE     MQTT_TOPIC_BASE "online"    // micro_pilote/online {"id": 1, "state": 1} | retain = true
-#define MQTT_TOPIC_SYSTEM     MQTT_TOPIC_BASE "system"    // micro_pilote/system {"id": 1, "version": "2.0.0-beta", "ip": "192.168.1.31", "mac": "cd:cf:34:45:fc:4e", "rssi": "64", "freeheap": "2342", } | retain = true
+#define MQTT_TOPIC_ONLINE     MQTT_TOPIC_BASE "online"    // micropilote/online {"id": 165656, "state": true} | retain = true
+#define MQTT_TOPIC_SYSTEM     MQTT_TOPIC_BASE "system"    // micropilote/system {"id": 165656, "version": "2.0.0-beta", "ip": "192.168.1.31", "mac": "cd:cf:34:45:fc:4e", "rssi": "64", "freeheap": "2342", } | retain = true
 
 // Topic micro pilote commande
-#define MQTT_TOPIC_FP_GET     MQTT_TOPIC_BASE "fp/get"      // micro_pilote/fp/get {"id": 1}
-#define MQTT_TOPIC_FP_SET     MQTT_TOPIC_BASE "fp/set"      // micro_pilote/fp/set {"id": 1, "fp": "C"}
-#define MQTT_TOPIC_CONFIG_GET MQTT_TOPIC_BASE "config/get"  // micro_pilote/config/get {"id": 1, "hostname": "mod1", "ssid": "wifi", "psk": "pass", "mqtt": { "host": mqtt.lan, "port": 1883, ...}}
-#define MQTT_TOPIC_CONFIG_SET MQTT_TOPIC_BASE "config/set"  // micro_pilote/
+#define MQTT_TOPIC_FP_GET     MQTT_TOPIC_BASE "fp/get"      // micropilote/fp/get {"id": 165656}
+#define MQTT_TOPIC_FP_SET     MQTT_TOPIC_BASE "fp/set"      // micropilote/fp/set {"id": 165656, "fp": "C"}
+#define MQTT_TOPIC_CONFIG_GET MQTT_TOPIC_BASE "config/get"  // micropilote/config/get {"id": 165656, "hostname": "mod1", "ssid": "wifi", "psk": "pass", "mqtt": { "host": mqtt.lan, "port": 1883, ...}}
+#define MQTT_TOPIC_CONFIG_SET MQTT_TOPIC_BASE "config/set"  // micropilote/config/set {"id": 154965, "hostname": "mod1", "ssid": "wifi", "psk": "pass", "mqtt": { "host": mqtt.lan, "port": 1883, ...}}
+
+#define MQTT_TOPPIC_REMORA_ONLINE MQTT_TOPIC_REMORA_BASE "online"
 
 // Last Stand Will Message to be posted when Remora disconnect( /online 0 )
 #define MQTT_TOPIC_LSW MQTT_TOPIC_BASE "online"
@@ -36,7 +39,7 @@
 // Set keep alive in sec. Will also be used when Remora disconnect from broker to spawn lws message after it timeouts.
 #define MQTT_KEEP_ALIVE 10
 
-#define DELAY_PUBLISH_SYSINFO 5
+#define DELAY_PUBLISH_SYSINFO 10
 //#define DELAY_PUBLISH_TINFO 1
 
 // Variables
@@ -53,7 +56,7 @@ void onMqttPublish(uint16_t);
 void initMqtt(void);
 void disconnectMqtt(void);
 bool mqttIsConnected(void);
-void mqttFpPublish(uint8_t fp = 0);
+void mqttFpPublish(void);
 void mqttConfigPublish(bool error = false);
 
 #endif // MQTT_H

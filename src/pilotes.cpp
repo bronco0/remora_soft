@@ -75,9 +75,9 @@ int setfp(String command)
   command.trim();
   command.toUpperCase();
 
-  Log.verbose(F("setfp="));
+  Log.verbose(F("\r\nsetfp="));
   Log.verbose(command.c_str());
-  Log.verbose("\r\n");
+  Log.verbose(F("\r\n"));
 
   int returnValue = -1;
 
@@ -93,8 +93,8 @@ int setfp(String command)
     uint8_t fp = command[0]-'0';
     char cOrdre= command[1];
 
-    if ( (fp == 1) ||
-        (cOrdre == 'C' && cOrdre == 'E' && cOrdre == 'H' && cOrdre == 'A' && cOrdre == '1' && cOrdre == '2')) {
+    if ( (fp == 1) &&
+        (cOrdre == 'C' || cOrdre == 'E' || cOrdre == 'H' || cOrdre == 'A' || cOrdre == '1' || cOrdre == '2')) {
       memFP[fp-1] = cOrdre; // On mémorise toujours la commande demandée
       char cOrdreEnCours = etatFP[fp-1]; // Quel est l'état actuel du fil pilote?
       if (cOrdreEnCours != 'D')
@@ -107,7 +107,7 @@ int setfp(String command)
     }
     else {
       // erreur
-      Log.error(F("Argument incorrect : %c\r\n"), cOrdre);
+      Log.error(F("Argument incorrect : %d => %c\r\n"), fp, cOrdre);
     }
   }
   // curl http://192.168.1.201/?fp=CCCCCCC
@@ -124,8 +124,8 @@ int setfp(String command)
 
     // Si on ne doit pas laisser le fil pilote inchangé
     if (cOrdre != '-' ) {
-      if ( (fp > 0 || fp <= NB_FILS_PILOTES) ||
-        (cOrdre == 'C' && cOrdre == 'E' && cOrdre == 'H' && cOrdre == 'A' && cOrdre == '1' && cOrdre == '2')) {
+      if ( (fp == 1)  &&
+        (cOrdre == 'C' || cOrdre == 'E' || cOrdre == 'H' || cOrdre == 'A' || cOrdre == '1' || cOrdre == '2')) {
         memFP[fp-1] = cOrdre; // On mémorise toujours la commande demandée
         char cOrdreEnCours = etatFP[fp-1]; // Quel est l'état actuel du fil pilote?
         if (cOrdreEnCours != 'D') {
@@ -140,7 +140,7 @@ int setfp(String command)
       }
       else {
         // erreur
-        Log.error(F("Argument incorrect : %c\r\n"), cOrdre);
+        Log.error(F("Argument incorrect : %d = %c\r\n"), fp, cOrdre);
       }
     }
 
@@ -151,7 +151,9 @@ int setfp(String command)
     returnValue = -1;
   }
 
-  mqttFpPublish();
+  if (returnValue != -1) {
+    mqttFpPublish();
+  }
 
   return(returnValue);
 }
@@ -175,7 +177,6 @@ int setfp_interne(uint8_t fp, char cOrdre)
   // Vérifier que le numéro du fil pilote ne dépasse le MAX et
   // que la commande est correcte
   // 'D' correspond à délestage
-
 
   Log.verbose(F("setfp_interne : fp=%d ; cOrdre=%c\r\n"), fp, cOrdre);
 
