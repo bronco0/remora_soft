@@ -159,6 +159,7 @@ int setfp(String command)
           // erreur
           Log.error(F("Argument incorrect : %c\r\n"), cOrdre);
         }
+        //delay(25);
       }
 
       // Feed the dog
@@ -246,7 +247,9 @@ int setfp_interne(uint8_t fp, char cOrdre)
     }
     #ifdef MOD_MICRO
       else {
-        mqttSendToMicroPilote(config.zones_fp.fp[fp-1].id, cOrdre);
+        if (config.zones_fp.fp[fp-1].id > 0 && config.zones_fp.fp[fp-1].is_enable && mp_info.is_online[fp-1]) {
+          mqttSendFpToMicroPilote(config.zones_fp.fp[fp-1].id, cOrdre);
+        }
       }
     #endif
     return (0);
@@ -267,17 +270,15 @@ void initFP(void)
   Tick_conf12_5m.attach(300, conf12, '0');
 
   // buffer contenant la commande à passer à setFP
-  char cmd[] = "xH" ;
+  //char cmd[] = "xH" ;
+  char message[NB_FILS_PILOTES +1] = "";
 
   // On positionne tous les FP en Hors-Gel
-  for (uint8_t i=1; i<=NB_FILS_PILOTES; i+=1)
-  {
-    cmd[0]='0' + i;
-    setfp(cmd);
-
-    // Feed the dog
-    _wdt_feed();
+  for (int i=1; i <= NB_FILS_PILOTES; i++) {
+    strcat(message, "H");   
   }
+  _wdt_feed();
+  setfp(message);
 }
 
 /* ======================================================================
@@ -399,9 +400,9 @@ int relais(String command)
   int etatRelaisPin = cmd;
 
   // Inverse etat pin relais si definit dans remora.h
-  #ifdef RELAIS_REVERSE
+  if (config.zones_fp.relais_reverse) {
     etatRelaisPin = !etatRelaisPin;
-  #endif
+  }
 
     // Allumer/Etteindre le relais et la LED
   #ifdef RELAIS_PIN
@@ -494,7 +495,7 @@ Comments: -
 ====================================================================== */
 bool pilotes_setup(void)
 {
-  Log.notice(F("Initializing MCP23017...Searching..."));
+  Log.notice(F("\r\nInitializing MCP23017...Searching..."));
 
   // Détection du MCP23017
   if (!i2c_detect(MCP23017_ADDRESS))

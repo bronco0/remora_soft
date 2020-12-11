@@ -3,6 +3,7 @@
 #################
 
 node_modules/
+bower_components/
 font-awesome-4.5.0/
 bootstrap-3.3.5-dist/
 index_dropzone.htm
@@ -236,4 +237,3 @@ espminiterm.py
 ###############
 
 .pio/
-

@@ -32,7 +32,6 @@ extern uint16_t response_idx;
 
 // declared exported function from webserver.cpp
 // ===================================================
-void getSysJSONData(String & response);
 void handleFormConfig(AsyncWebServerRequest *request);
 void handleFactoryReset(AsyncWebServerRequest *request);
 void handleReset(AsyncWebServerRequest *request);

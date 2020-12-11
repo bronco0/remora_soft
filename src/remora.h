@@ -36,7 +36,7 @@
 //  Définir ici les modules utilisés sur la carte Remora
 //#define MOD_RF69         /* Module RF  */
 #define MOD_OLED         /* Afficheur  */
-//#define MOD_TELEINFO     /* Teleinfo   */
+#define MOD_TELEINFO     /* Teleinfo   */
 //#define MOD_RF_OREGON    /* Reception des sondes orégon */
 #define MOD_ADPS         /* Délestage */
 #define MOD_MQTT         /* MQTT */
@@ -174,9 +174,9 @@ extern "C" {
 #ifdef MOD_RF69
   #define STATUS_RFM    0x0004 // RFM69  detecté
 #endif
-#ifdef MOD_TELEINFO
+//#ifdef MOD_TELEINFO
   #define STATUS_TINFO  0x0008 // Trame téléinfo detecté
-#endif
+//#endif
 
 // Variables exported to other source file
 // ========================================

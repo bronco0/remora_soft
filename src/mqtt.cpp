@@ -47,7 +47,7 @@ void mqttSysinfoPublish(void) {
   // Send sysinfo via mqtt
   if (config.mqtt.isActivated && mqttIsConnected()) {
     String message;
-    message.reserve(600);
+    message.reserve(700 + (NB_VIRTUAL_FILS_PILOTES*300));
     getSysJSONData(message);
 
     Log.verbose(F("message_send = "));
@@ -80,18 +80,26 @@ void mqttSysinfoPublish(void) {
 #endif
 
 #ifdef MOD_MICRO
-  void mqttSendToMicroPilote(uint32_t id, char ordre){
+  void mqttSendFpToMicroPilote(uint32_t id, char ordre){
     if (config.mqtt.isActivated && mqttIsConnected()) {
       char message[40];
-      const size_t capacity = JSON_OBJECT_SIZE(2);
+      char value[2];
+      const size_t capacity = JSON_OBJECT_SIZE(2) + 40;
       StaticJsonDocument<capacity> doc;
 
       doc["id"] = id;
-      doc["fp"] = ordre;
+      if (ordre == 0) {
+        doc["fp"] = nullptr;
+      }
+      else {
+        value[0] = ordre;
+        value[1] = 0;
+        doc["fp"] = value;
+      }
 
       serializeJson(doc, message);
 
-      Log.verbose(F("message_send = "));
+      Log.verbose(F("MP : message_send = "));
       Log.verbose(message);
       Log.verbose("\r\n");
       if ( mqttClient.publish(MQTT_TOPIC_MC_FP_SET, 1, false, message) == 0 ) {
@@ -104,8 +112,8 @@ void mqttSysinfoPublish(void) {
 void mqttFpPublish(uint8_t fp, bool force) {
   if (config.mqtt.isActivated && mqttIsConnected()) {
     uint8_t fp_last = NB_FILS_PILOTES;
-    char message[NB_FILS_PILOTES * 20];
-    const size_t capacity = JSON_OBJECT_SIZE(NB_FILS_PILOTES) + 10 * NB_FILS_PILOTES;
+    char message[NB_FILS_PILOTES * 40];
+    const size_t capacity = JSON_OBJECT_SIZE(NB_FILS_PILOTES) + 45 * NB_FILS_PILOTES;
     StaticJsonDocument<capacity> doc;
 
     if (fp >= 0 && fp <= NB_FILS_PILOTES) {
@@ -117,20 +125,24 @@ void mqttFpPublish(uint8_t fp, bool force) {
       }
 
       for (; fp <= fp_last; fp++) {
-        char fp_name[4] = "";
-        char i_to_a[3] = "";
-        // Convert i to asci
-        itoa(fp, i_to_a, 10);
-
-        // Concat "fp" whith i => fp1, fp2, fp3, ...
-        strcat(fp_name, "fp");
-        strcat(fp_name, i_to_a);
-
         if (etatFP[fp-1] != etatFP_sav[fp-1] || force) {
-          char val[2];
-          val[0] = etatFP[fp-1];
-          val[1] = 0;
-          doc[fp_name] = val;
+          char value[2];
+          value[0] = etatFP[fp-1];
+          value[1] = 0;
+          
+          if (config.zones_fp.fp[fp-1].is_enable) {
+            if (config.zones_fp.fp[fp-1].is_virtual) {
+              if (mp_info.is_online[fp-1]) {
+                doc[config.zones_fp.fp[fp-1].name] = value;
+              }
+              else {
+                doc[config.zones_fp.fp[fp-1].name] = "O";
+              }
+            }
+            else {
+              doc[config.zones_fp.fp[fp-1].name] = value;
+            }
+          }
         }
       }
 
@@ -158,7 +170,7 @@ void mqttDelestagePublish(void) {
     StaticJsonDocument<capacity> doc;
 
     doc[F("status")]   = (nivDelest > 0)?1:0;
-    doc[F("niveau")]  = nivDelest;
+    doc[F("niveau")]   = nivDelest;
     doc[F("old_zone")] = plusAncienneZoneDelestee;
 
     serializeJson(doc, Serial);
@@ -217,7 +229,22 @@ void onMqttConnect(bool sessionPresent) {
   }
 
   // Publish online status in retained mode ( will be set to 0 by lsw when Remora disconnect after MQTT_KEEP_ALIVE as expired ).
-  mqttClient.publish(MQTT_TOPIC_LSW,1,true,"1");
+  String message;
+  message.reserve(50);
+  const size_t capacity = JSON_OBJECT_SIZE(2) + 50;
+  StaticJsonDocument<capacity> doc;
+
+  doc["id"]    = "remora";
+  doc["state"] = true;
+
+  serializeJson(doc, message);
+
+  Log.verbose(F("on LSW message = "));
+  Log.verbose(message.c_str());
+  Log.verbose("\r\n");
+
+  //mqttClient.setWill(MQTT_TOPIC_LSW , 1, true, "{\"id\":15387855,\"state\":\"1\"}");
+  mqttClient.publish(MQTT_TOPIC_LSW , 1, true, message.c_str());
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason) {
@@ -272,7 +299,33 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
       }
     }
     else {
-      mqttFpPublish(0, true);
+      if (len == 0) {
+        mqttFpPublish(0, true);
+      }
+      else {
+        const size_t capacity = JSON_ARRAY_SIZE(15) + JSON_OBJECT_SIZE(1) + 651;
+        DynamicJsonDocument doc(capacity);
+
+        deserializeJson(doc, payload);
+
+        JsonArray name = doc["name"];
+
+        Log.verbose("doc size : %l\r\n", name.size());
+
+        for (unsigned int j=0; j<name.size(); j++){
+          for (int i=1; i <= NB_FILS_PILOTES; i++) {
+            String upper_name = String(name[j].as<char *>());
+            upper_name.toUpperCase();
+            Log.verbose(upper_name.c_str());
+            Log.verbose("\r\n\r\n");
+            if (!strncmp(config.zones_fp.fp[i-1].name, upper_name.c_str(), sizeof(name[j]))) {
+              mqttFpPublish(i, true);
+              break;
+            }
+          }
+          _wdt_feed();
+        }
+      }
     }
   }
   // Get relais information
@@ -281,32 +334,47 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
   }
   // Set fp
   else if (!strncmp(topic, MQTT_TOPIC_FP_SET, strlen(MQTT_TOPIC_FP_SET))) {
-    char message[NB_FILS_PILOTES] = "";
-    const size_t capacity = JSON_OBJECT_SIZE(NB_FILS_PILOTES) + NB_FILS_PILOTES*10;
+    char message[NB_FILS_PILOTES+1] = "";
+    const size_t capacity = JSON_OBJECT_SIZE(NB_FILS_PILOTES) + NB_FILS_PILOTES*20;
     StaticJsonDocument<capacity> doc;
 
     deserializeJson(doc, payload);
 
-    for (uint8_t i = 1; i <= NB_FILS_PILOTES; i++) {
-      char fp[4] = "fp";
-      char i_to_a[4] = "";
-      // Convert i to asci
-      itoa(i, i_to_a, 10);
-      // Concat "fp" whith i => fp1, fp2, fp3, ...
-      //strcat(fp, "fp");
-      strcat(fp, i_to_a);
-      // Concat "1" with order => 1C, 2E, 3H, ...
-
-      if (doc[fp].isNull()) {
-        strcat(message, "-");
-        continue;
-      }
-      else {
-        strcat(message, doc[fp]);
+    if (doc.size() == 1 && doc.containsKey("all")) {
+      //Tout les fils pilotes
+      for (uint8_t i = 1; i <= NB_FILS_PILOTES; i++) {
+        strcat(message, doc["all"]);
       }
     }
+    else {
+      for (int i=1; i <= NB_FILS_PILOTES; i++) {
+        bool upper  = true;
+        bool lower  = true;
+        String name = config.zones_fp.fp[i-1].name;
+        
+        name.toLowerCase();       
+        // not lower
+        if (doc[name].isNull()) {
+          lower = false;
+        }
 
-    _wdt_feed();
+        name.toUpperCase();
+        // not upper
+        if (doc[name].isNull()) {
+          upper = false;
+          name.toLowerCase();
+        }
+
+        if (upper != lower) {
+          strcat(message, doc[name]);
+        }
+        else {
+          strcat(message, "-");
+        }
+
+        _wdt_feed();
+      }
+    }
 
     Log.verbose(F("message = "));
     Log.verbose(message);
@@ -321,25 +389,31 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
     deserializeJson(doc, payload);
 
     Log.verbose(F("relais mode = "));
-    Log.verbose(doc["mode"].as<const char*>());
+    Log.verbose(doc["mode"].as<const char *>());
     Log.verbose("\r\n");
-    fnct_relais(doc["mode"]);
+    fnct_relais(doc["mode"].as<const char *>());
   }
   #ifdef MOD_MICRO
     // Micro pilote
     // Get fp
     else if (!strncmp(topic, MQTT_TOPIC_MC_FP_GET, strlen(MQTT_TOPIC_MC_FP_GET))) {
-      const size_t capacity = JSON_OBJECT_SIZE(2) + 10;
+      Log.verbose(F("MQTT_TOPIC_MC_FP_GET\r\n"));
+      const size_t capacity = JSON_OBJECT_SIZE(2) + 50;
       StaticJsonDocument<capacity> doc;
 
       deserializeJson(doc, payload);
-
-      Log.verbose(F("Micro pilote %lu : %c\r\n"), doc["id"].as<uint32_t>(), doc["id"].as<char>());
+      Log.verbose("Micro pilote %X : ", doc["id"].as<uint32_t>());
+      Log.verbose(doc["fp"].as<const char *>());
+      Log.verbose("\r\n");
       
-      for (int i=NB_REAL_FILS_PILOTES + 1; i >= NB_FILS_PILOTES; i++) {
+      for (int i=NB_REAL_FILS_PILOTES + 1; i <= NB_FILS_PILOTES; i++) {
+        Log.verbose(F("Iterration : %d\r\n"), i);
         if (config.zones_fp.fp[i-1].id == doc["id"].as<uint32_t>()) {
-          if (etatFP[i-1] != doc["id"].as<char>()) {
-            mqttSendToMicroPilote(doc["id"].as<uint32_t>(), etatFP[i-1]);
+          Log.verbose("%c\r\n", etatFP[i-1]);
+          const char *fp = doc["fp"].as<const char *>();
+          Log.verbose("%c\r\n", fp[0]);
+          if (etatFP[i-1] != fp[0]) {
+            mqttSendFpToMicroPilote(doc["id"].as<uint32_t>(), etatFP[i-1]);
           }
           break;
         }
@@ -348,15 +422,15 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
     }
     // Get config
     else if (!strncmp(topic, MQTT_TOPIC_MC_CONFIG_GET, strlen(MQTT_TOPIC_MC_CONFIG_GET))) {
+      Log.verbose(F("MQTT_TOPIC_MC_CONFIG_GET"));
       const size_t capacity = JSON_OBJECT_SIZE(5) + JSON_OBJECT_SIZE(7) + 515;
       StaticJsonDocument<capacity> doc;
 
       deserializeJson(doc, payload);
 
-      // recup index depuis config
-      for (int i=NB_REAL_FILS_PILOTES + 1; i >= NB_FILS_PILOTES; i++) {
+      for (int i=NB_REAL_FILS_PILOTES + 1; i <= NB_FILS_PILOTES; i++) {
+        Log.verbose(F("Iterration : %d\r\n"), i);
         if (config.zones_fp.fp[i-1].id == doc["id"].as<uint32_t>()) {
-
           strcpy(mp_info.config[i-1].hostname, doc["hostname"].as<const char *>());
           strcpy(mp_info.config[i-1].ssid, doc["ssid"].as<const char *>());
           strcpy(mp_info.config[i-1].ota_auth, doc["ota_auth"].as<const char *>());
@@ -369,6 +443,7 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
           strcpy(mp_info.config[i-1].mqtt.user, mqtt["user"].as<const char *>());
           strcpy(mp_info.config[i-1].mqtt.password, mqtt["password"].as<const char *>());
 
+          Log.verbose("Micro pilote %s : id %d\r\n", mp_info.config[i-1].hostname, i-1);
           break;
         }
       }
@@ -376,11 +451,13 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
     }
     // Receive sysinfo
     else if (!strncmp(topic, MQTT_TOPIC_MC_SYSTEM, strlen(MQTT_TOPIC_MC_SYSTEM))) {
+      Log.verbose(F("MQTT_TOPIC_MC_SYSTEM\r\n"));
       const size_t capacity = JSON_OBJECT_SIZE(10) + 300;
       StaticJsonDocument<capacity> doc;
 
       deserializeJson(doc, payload);
-      for (int i=NB_REAL_FILS_PILOTES + 1; i >= NB_FILS_PILOTES; i++) {
+      for (int i=NB_REAL_FILS_PILOTES + 1; i <= NB_FILS_PILOTES; i++) {
+        Log.verbose(F("Iterration : %d\r\n"), i);
         if (config.zones_fp.fp[i-1].id == doc["id"].as<uint32_t>()) {
           mp_info.system[i-1].uptime = doc["uptime"].as<uint32_t>();
           mp_info.system[i-1].cpu_freq = doc["cpu_freq"].as<uint8>();
@@ -391,6 +468,8 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
           mp_info.system[i-1].free_ram = doc["free_ram"].as<uint32_t>();
           strcpy(mp_info.system[i-1].heap_fragmentation, doc["heap_fragmentation"].as<const char *>());
           strcpy(mp_info.system[i-1].ip, doc["ip"].as<const char *>());
+
+          Log.verbose("Micro pilote %X : id %d : uptime %l\r\n", config.zones_fp.fp[i-1].id, i-1, mp_info.system[i-1].uptime);
           break;
         }
       }
@@ -398,19 +477,56 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
     }
     // LWT/ONLINE  => ex: new device
     else if (!strncmp(topic, MQTT_TOPIC_MC_ONLINE, strlen(MQTT_TOPIC_MC_ONLINE))) {
+      Log.verbose(F("MQTT_TOPIC_MC_ONLINE\r\n"));
       const size_t capacity = JSON_OBJECT_SIZE(2) + 10;
       StaticJsonDocument<capacity> doc;
 
       deserializeJson(doc, payload);
 
-      // recup index depuis config
-      for (int i=NB_REAL_FILS_PILOTES + 1; i >= NB_FILS_PILOTES; i++) {
+      bool not_found = true;
+      Log.verbose(F("NB FP : %d\r\n"), NB_FILS_PILOTES);
+      for (int i=NB_REAL_FILS_PILOTES + 1; i <= NB_FILS_PILOTES; i++) {
+        Log.verbose(F("Iterration : %d\r\n"), i);
         if (config.zones_fp.fp[i-1].id == doc["id"].as<uint32_t>()) {
-          mp_info.isOnline[i-1] = doc["state"].as<bool>();
+          mp_info.is_online[i-1] = doc["state"].as<boolean>();
+          config.zones_fp.fp[i-1].is_enable = doc["state"].as<boolean>();
+          Log.verbose(F("Find micro pilote : %X\r\n"), config.zones_fp.fp[i-1].id);
+          not_found = false;
+          if (mp_info.is_online[i-1]) {
+            mqttSendFpToMicroPilote(config.zones_fp.fp[i-1].id, 0);
+          }
+          else {
+            mqttFpPublish(i, true);
+          }
           break;
         }
       }
       _wdt_feed();
+      if (not_found) {
+        Log.error(F("Not found micro pilote\r\n"));
+        for (int i=NB_REAL_FILS_PILOTES + 1; i <= NB_FILS_PILOTES; i++) {
+          Log.verbose(F("Iterration2 : %d\r\n"), i);
+          if (config.zones_fp.fp[i-1].id == 0) {
+            config.zones_fp.fp[i-1].id = doc["id"].as<uint32_t>();
+            mp_info.is_online[i-1] = doc["state"].as<boolean>();
+            config.zones_fp.fp[i-1].is_enable = doc["state"].as<boolean>();
+
+            char buff[12];
+            sprintf_P(buff, PSTR("%06X"), config.zones_fp.fp[i-1].id);
+            strcpy_P(config.zones_fp.fp[i-1].name, buff);
+
+            Log.verbose(F("New micro pilote : %X : id %d\r\n"), config.zones_fp.fp[i-1].id, i-1);
+            mqttSendFpToMicroPilote(config.zones_fp.fp[i-1].id, 0);
+            break;
+          }
+          else {
+            if (i == NB_FILS_PILOTES) {
+              Log.error(F("Not space for micro pilote\r\n"));
+            }
+          }
+        }
+        _wdt_feed();
+      }
     }
   #endif
   else {
@@ -423,7 +539,7 @@ void onMqttPublish(uint16_t packetId) {
 }
 
 void initMqtt(void) {
-  Log.verbose(F("initMqtt\r\n"));
+  Log.verbose(F("\r\ninitMqtt\r\n"));
   if (first_setup) {
     Log.verbose(F("initMqtt_first_setup\r\n"));
     mqttClient.onConnect(onMqttConnect);
@@ -444,7 +560,24 @@ void initMqtt(void) {
   mqttClient.setClientId(config.host);
   mqttClient.setKeepAlive(MQTT_KEEP_ALIVE);
   mqttClient.setCleanSession(true);
-  mqttClient.setWill(MQTT_TOPIC_LSW , 1, true, "0");
+
+
+  String message;
+  message.reserve(50);
+  const size_t capacity = JSON_OBJECT_SIZE(2) + 50;
+  StaticJsonDocument<capacity> doc;
+
+  doc["id"]    = "remora";
+  doc["state"] = false;
+
+  serializeJson(doc, message);
+
+  Log.verbose(F("set will message = "));
+  Log.verbose(message.c_str());
+  Log.verbose("\r\n");
+
+  mqttClient.setWill(MQTT_TOPIC_LSW , 1, true, message.c_str());
+
 
   #if ASYNC_TCP_SSL_ENABLED
     if (config.mqtt.protocol == "mqtts") {

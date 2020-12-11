@@ -109,41 +109,29 @@ int WifiHandleConn(boolean setup = false)
   if (setup) {
     // Feed the dog
     _wdt_feed();
-    Log.verbose(F("========== SDK Saved parameters Start"));
+    Log.verbose(F("== Wifi debug parameters\r\n"));
     WiFi.printDiag(DEBUG_SERIAL);
-    Log.verbose(F("========== SDK Saved parameters End\r\n"));
+    Log.verbose(F("\r\n\r\n"));
 
-    #if defined (DEFAULT_WIFI_SSID) && defined (DEFAULT_WIFI_PASS)
-      Log.verbose(F("Connection au Wifi : "));
-      Log.verbose(DEFAULT_WIFI_SSID);
+
+    Log.verbose(F("Connection à: "));
+    Log.verbose(config.ssid);
+
+    // Do wa have a PSK ?
+    if (*config.psk) {
+      // protected network
       Log.verbose(F(" avec la clé '"));
-      Log.verbose(DEFAULT_WIFI_PASS);
+      Log.verbose(config.psk);
       Log.verbose(F("'...\r\n"));
 
-      WiFi.begin(DEFAULT_WIFI_SSID, DEFAULT_WIFI_PASS);
-    #else
-      if (*config.ssid) {
-        Log.verbose(F("Connection à: "));
-        Log.verbose(config.ssid);
+      WiFi.begin(config.ssid, config.psk);
+    } else {
+      // Open network
+      Log.verbose(F("AP Ouvert\r\n"));
+      WiFi.begin(config.ssid);
+    }
 
-        // Do wa have a PSK ?
-        if (*config.psk) {
-          // protected network
-          Log.verbose(F(" avec la clé '"));
-          Log.verbose(config.psk);
-          Log.verbose(F("'...\r\n"));
-
-          WiFi.begin(config.ssid, config.psk);
-        } else {
-          // Open network
-          Log.verbose(F("AP Ouvert\r\n"));
-          WiFi.begin(config.ssid);
-        }
-      }
-    #endif
-
-    timeout = 25; // 25 * 200 ms = 5 sec time out
-
+    timeout = 50; // 25 * 200 ms = 10 sec time out
     // 200 ms loop
     while ( ((ret = WiFi.status()) != WL_CONNECTED) && timeout )
     {
@@ -152,7 +140,7 @@ int WifiHandleConn(boolean setup = false)
       delay(50);
       LedRGBOFF();
       delay(150);
-      --timeout;
+      timeout--;
       _wdt_feed();
     }
 
@@ -167,27 +155,19 @@ int WifiHandleConn(boolean setup = false)
       Log.verbose("\r\n");
       Log.verbose(F("MAC address  : "));
       Log.verbose(WiFi.macAddress().c_str());
-      Log.verbose("\r\n");
+      Log.verbose("\r\n\r\n");
 
     // not connected ? start AP
     } else {
       Log.verbose(F("Erreur, passage en point d'acces "));
-      Log.verbose(DEFAULT_HOSTNAME);
+      Log.verbose(config.host);
 
       // protected network
       Log.verbose(F(" avec la clé '"));
-      if (*config.ap_psk) {
-        Log.verbose(config.ap_psk);
-      } else {
-        Log.verbose(DEFAULT_WIFI_AP_PASS);
-      }
+      Log.verbose(config.ap_psk);
       Log.verbose(F("'\r\n"));
 
-      if (*config.ap_psk) {
-        WiFi.softAP(DEFAULT_HOSTNAME, config.ap_psk);
-      } else {
-        WiFi.softAP(DEFAULT_HOSTNAME, DEFAULT_WIFI_AP_PASS);
-      }
+      WiFi.softAP(config.host, config.ap_psk);
       WiFi.mode(WIFI_AP_STA);
 
       Log.verbose(F("IP address   : "));
@@ -195,20 +175,16 @@ int WifiHandleConn(boolean setup = false)
       Log.verbose("\r\n");
       Log.verbose(F("MAC address  : "));
       Log.verbose(WiFi.softAPmacAddress().c_str());
-      Log.verbose("\r\n");
+      Log.verbose("\r\n\r\n");
     }
 
     // Feed the dog
     _wdt_feed();
 
     // Set OTA parameters
-     ArduinoOTA.setPort(DEFAULT_OTA_PORT);
-     ArduinoOTA.setHostname(DEFAULT_HOSTNAME);
-     if (*config.ota_auth) {
-       ArduinoOTA.setPassword(config.ota_auth);
-     } else {
-       ArduinoOTA.setPassword(DEFAULT_OTA_AUTH);
-     }
+     ArduinoOTA.setPort(config.ota_port);
+     ArduinoOTA.setHostname(config.host);
+     ArduinoOTA.setPassword(config.ota_auth);
      ArduinoOTA.begin();
 
     // just in case your sketch sucks, keep update OTA Available
@@ -224,7 +200,7 @@ int WifiHandleConn(boolean setup = false)
       ArduinoOTA.handle();
     }
 
-  } // if setup
+  }
 
   return WiFi.status();
 }
@@ -426,7 +402,7 @@ void mysetup()
   #endif
 
   // Check File system init
-  if (SPIFFS.begin()) {
+  if (!SPIFFS.begin()) {
       // Serious problem
       Log.error(F("SPIFFS Mount failed\r\n"));
   }
@@ -457,7 +433,7 @@ void mysetup()
     // Indicate the error in global flags
     config.config |= CFG_BAD_CRC;
 
-    Log.error(F("Read Configuration => Reset to default\r\n"));
+    Log.error(F("Read Configuration => Bad CRC : Reset to default\r\n"));
   }
   else {
     Log.verbose(F("Read Configuration => Good CRC !\r\n"));
@@ -618,8 +594,8 @@ void mysetup()
   // handler for the /update form POST (once file upload finishes)
   server.on(PSTR("/update"), HTTP_POST, [](AsyncWebServerRequest *request) {
     reboot = !Update.hasError();
-    AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", reboot ? "OK" : "FAIL");
-    response->addHeader("Connection","close");
+    AsyncWebServerResponse *response = request->beginResponse(200, F("text/plain"), reboot ? F("OK") : F("FAIL"));
+    response->addHeader(F("Connection"),F("close"));
     request->send(response);
   }, handle_fw_upload);
 
@@ -632,7 +608,7 @@ void mysetup()
   server.serveStatic(PSTR("/css"),  SPIFFS, PSTR("/css") , PSTR("max-age=86400"));
   server.begin();
 
-  Log.notice(F("HTTP server started\r\n"));
+  Log.notice(F("\r\nHTTP server started\r\n"));
 
   #ifdef BLYNK_AUTH
     Blynk.config(BLYNK_AUTH);
@@ -726,9 +702,10 @@ void loop()
 {
   //static bool refreshDisplay = false;
   //static bool last_state;
+  //bool current_state ;
   static unsigned long previousMillis = 0;  // last time update
   unsigned long currentMillis = millis();
-  //bool current_state ;
+  
 
   // our own setup
   if (first_setup) {
@@ -781,13 +758,13 @@ void loop()
         // You can do some work here
         // Don't do stuff if you are below your
         // time budget.
-        // delay(remainingTimeBudget);
+        delay(remainingTimeBudget);
       }
     }
   #endif
-
+/*
   // recupération de l'état de connexion au Wifi
-  /*current_state = WiFi.status() == WL_CONNECTED ? true : false;
+  current_state = WiFi.status() == WL_CONNECTED ? true : false;
 
   // La connexion Wifi vient de chager d'état ?
   if (last_state != current_state)
@@ -804,13 +781,12 @@ void loop()
     else
     {
       // on compte la deconnexion led rouge
-      my_cloud_disconnect++;
-      Log.error(F("Perte de conexion #%d\r\n"), my_cloud_disconnect);
+      //my_cloud_disconnect++;
+      //Log.error(F("Perte de conexion #%d\r\n"), my_cloud_disconnect);
       LedRGBON(COLOR_RED);
     }
   }
-  */
-
+*/
   ArduinoOTA.handle();
 
   #ifdef MOD_EMONCMS

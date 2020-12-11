@@ -35,11 +35,12 @@ extern OLEDDisplayUi *ui;
 extern FrameCallback frames[];
 
 // Number frames to display
-#ifdef MOD_RF69
-// Frame RF is activated if MOD_RF69 is defined
+#if(defined MOD_RF69 && defined MOD_TELEINFO)
   #define DISPLAY_FRAME_COUNT 4
+#elif(defined MOD_RF69 || defined MOD_TELEINFO)
+ #define DISPLAY_FRAME_COUNT 3
 #else
-  #define DISPLAY_FRAME_COUNT 3
+  #define DISPLAY_FRAME_COUNT 2
 #endif
 
 #define DISPLAY_FPS 50 // Time to display a frame

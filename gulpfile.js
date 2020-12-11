@@ -7,15 +7,15 @@ This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
- 
+
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
- 
+
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
+
 */
 
 // -----------------------------------------------------------------------------
@@ -46,10 +46,10 @@ gulp.task('clean', function() {
 /* Copy static files */
 gulp.task('files', function() {
   return gulp.src([
-    'webdev/**/*.{woff,woff2}',
+    'webdev/fonts/*.{woff,woff2,ttf}',
     'webdev/favicon.ico'
   ])
-  .pipe(gulp.dest(dest));
+  .pipe(gulp.dest(dest + 'fonts'));
 });
 
 gulp.task('remora_js', function() {
@@ -60,7 +60,7 @@ gulp.task('remora_js', function() {
     'webdev/js/main.js',
   ])
   .pipe(concat('remora.min.js'))
-  .pipe(uglify())
+  //.pipe(uglify())
   .pipe(replace(/@remora_version/, pjson.version))
   .pipe(gulp.dest('webdev/js'));
 });
@@ -77,7 +77,7 @@ gulp.task('js', ['remora_js'], function() {
     'webdev/js/remora.min.js'
   ])
   .pipe(concat('remora.js'))
-  .pipe(uglify())
+  //.pipe(uglify())
   //.pipe(gzip())
   .pipe(gulp.dest('webdev/js'));
 });
@@ -104,7 +104,7 @@ gulp.task('html', function() {
     collapseWhitespace: true,
     removeComments: true,
     minifyCSS: true,
-    minifyJS: true
+    minifyJS: false
   }))
   .pipe(gzip())
   .pipe(gulp.dest(dest));

@@ -21,7 +21,9 @@
 
 // Configuration structure for whole program
 _Config config;
-_mp_info mp_info;
+#ifdef MOD_MICRO
+  _mp_info mp_info;
+#endif
 
 uint16_t crc16Update(uint16_t crc, uint8_t a)
 {
@@ -107,10 +109,10 @@ bool readConfig (bool clear_on_error)
 
   // CRC Error ?
   if (crc != 0) {
-    // Clear config if wanted
-    if (clear_on_error) {
-      memset(&config, 0, sizeof( _Config ));
-    }
+    return false;
+  }
+
+  if (config.config_version < CFG_VERSION) {
     return false;
   }
 
@@ -310,7 +312,8 @@ void showConfig()
   for (uint8_t i=1; i <= NB_FILS_PILOTES; i++) {
     if (config.zones_fp.fp[i-1].is_enable) {
       Log.verbose(config.zones_fp.fp[i-1].name);
-      Log.verbose("\r\n");
+      Log.verbose(" : %X", config.zones_fp.fp[i-1].id);
+      Log.verbose(F("\r\n"));
     }
   }
 }
@@ -327,9 +330,14 @@ void resetConfig(void)
 {
   // enable default configuration
   memset(&config, 0, sizeof(_Config));
+ 
+  config.config_version = CFG_VERSION;
 
   // Set default Hostname
   sprintf_P(config.host, DEFAULT_HOSTNAME);
+  sprintf_P(config.ssid, DEFAULT_WIFI_SSID);
+  sprintf_P(config.psk, DEFAULT_WIFI_PASS);
+  sprintf_P(config.ap_psk, DEFAULT_WIFI_AP_PASS);
   strcpy_P(config.ota_auth, DEFAULT_OTA_AUTH);
   config.ota_port = DEFAULT_OTA_PORT ;
 
@@ -371,8 +379,8 @@ void resetConfig(void)
     strcpy_P(config.mqtt.host, CFG_MQTT_DEFAULT_HOST);
     config.mqtt.port = CFG_MQTT_DEFAULT_PORT;
     config.mqtt.hasAuth = CFG_MQTT_DEFAULT_AUTH;
-    strcpy_P(config.mqtt.user, "");
-    strcpy_P(config.mqtt.password, "");
+    strcpy_P(config.mqtt.user, CFG_MQTT_DEFAULT_USER);
+    strcpy_P(config.mqtt.password, CFG_MQTT_DEFAULT_PASSWORD);
   #endif
 
   config.led_bright = DEFAULT_LED_BRIGHTNESS;
@@ -382,12 +390,10 @@ void resetConfig(void)
 
   for (int i=1; i <= NB_REAL_FILS_PILOTES; i++) {
     uint8_t pins[NB_REAL_FILS_PILOTES*2] = {FP1, FP2, FP3, FP4, FP5, FP6, FP7};
-    config.zones_fp.fp[i-1].id = pins[2*(i-1)];
-    config.zones_fp.fp[i-1].id <<= 16;
-    config.zones_fp.fp[i-1].id = pins[2*(i-1)+1];
+    config.zones_fp.fp[i-1].id = (pins[2*(i-1)] << 16) + pins[2*(i-1)+1];
 
     char buff[4];
-    sprintf_P(buff,PSTR("fp%d"), i-1);
+    sprintf_P(buff,PSTR("fp%d"), i);
     strcpy_P(config.zones_fp.fp[i-1].name, buff);
 
     config.zones_fp.fp[i-1].is_enable = true;
@@ -399,7 +405,7 @@ void resetConfig(void)
       config.zones_fp.fp[i-1].id = 0;
 
       char buff[4];
-      sprintf_P(buff,PSTR("fp%d"), i-1);
+      sprintf_P(buff,PSTR("fp%d"), i);
       strcpy_P(config.zones_fp.fp[i-1].name, buff);
 
       config.zones_fp.fp[i-1].is_enable = false;
@@ -409,6 +415,110 @@ void resetConfig(void)
 
   // save back
   saveConfig();
+}
+
+/* ======================================================================
+Function: getSysJSONData
+Purpose : Return JSON string containing system data
+Input   : Response String
+Output  : -
+Comments: -
+====================================================================== */
+void getSysJSONData(String & response) {
+  const size_t capacity = JSON_OBJECT_SIZE(2) + 2*JSON_OBJECT_SIZE(9) + JSON_OBJECT_SIZE(22) + 700 + (NB_VIRTUAL_FILS_PILOTES*300);
+  DynamicJsonDocument doc(capacity);
+  char buffer[60];
+
+  doc["uptime"] = uptime;
+
+  // Version Logiciel
+  doc["version"] = REMORA_SOFT_VERSION;
+
+  strcpy(buffer, __DATE__);
+  strcat(buffer, " ");
+  strcat(buffer, __TIME__);
+  doc["compilation_date"] = buffer;
+ 
+  // Version Matériel
+  doc["board"] = REMORA_BOARD;
+
+  // Modules activés
+  strcpy(buffer, "");
+  #ifdef MOD_OLED
+    strcat_P(buffer, PSTR("OLED "));
+  #endif
+  #ifdef MOD_TELEINFO
+    strcat_P(buffer, PSTR("TELEINFO "));
+  #endif
+  #ifdef MOD_RF69
+    strcat_P(buffer, PSTR("RF69 "));
+  #endif
+  #ifdef MOD_ADPS
+    strcat_P(buffer, PSTR("ADPS "));
+  #endif
+  #ifdef MOD_MQTT
+    strcat_P(buffer, PSTR("MQTT "));
+  #endif
+  #ifdef MOD_EMONCMS
+    strcat_P(buffer, PSTR("EMONCMS "));
+  #endif
+  #ifdef MOD_JEEDOM
+    strcat_P(buffer, PSTR("JEEDOM "));
+  #endif
+  doc["modules"] = buffer;
+  
+  doc["sdk_version"] = system_get_sdk_version();
+
+  sprintf_P(buffer, PSTR("0x%0X"), system_get_chip_id());
+  doc["chip_id"] = buffer;
+
+  sprintf_P(buffer, PSTR("0x%0X"), system_get_boot_version());
+  doc["boot_version"] = buffer;
+  
+  doc["cpu_freq"]        = system_get_cpu_freq();
+  doc["flash_real_size"] = ESP.getFlashChipRealSize();
+  doc["firmware_size"]   = ESP.getSketchSize();
+  doc["free_size"]       = ESP.getFreeSketchSpace();
+
+  doc["ip"]   = WiFi.localIP().toString();
+  doc["mac"]  = WiFi.macAddress();
+  doc["ssid"] = WiFi.SSID();
+  doc["rssi"] = WiFi.RSSI();
+
+  FSInfo info;
+  SPIFFS.info(info);
+  doc["spiffs_total"] = info.totalBytes;
+  doc["spiffs_used"] = info.usedBytes;
+  sprintf_P(buffer, PSTR("%d"), 100 * info.usedBytes / info.totalBytes);
+  doc["spiffs_used_percent"] = buffer;
+
+  doc["free_ram"] = system_get_free_heap_size();
+  sprintf_P(buffer, PSTR("%.2f"), 100 - getLargestAvailableBlock() * 100.0 / getTotalAvailableMemory());
+  doc["heap_fragmentation"] = buffer;
+
+  #ifdef MOD_MICRO
+    JsonObject micro_pilote = doc.createNestedObject("micro_pilote");
+
+    for (int i=NB_REAL_FILS_PILOTES + 1; i <= NB_FILS_PILOTES; i++) {
+      if (config.zones_fp.fp[i-1].is_enable) {
+        sprintf_P(buffer, PSTR("%06X"), config.zones_fp.fp[i-1].id);
+        JsonObject mp = micro_pilote.createNestedObject(buffer);
+
+        mp["uptime"]             = mp_info.system[i-1].uptime;
+        mp["cpu_freq"]           = mp_info.system[i-1].cpu_freq;
+        mp["flash_real_size"]    = mp_info.system[i-1].flash_real_size;
+        mp["firmware_size"]      = mp_info.system[i-1].firmware_size;
+        mp["free_size"]          = mp_info.system[i-1].free_size;
+        mp["ip"]                 = mp_info.system[i-1].ip;
+        mp["rssi"]               = mp_info.system[i-1].rssi;
+        mp["free_ram"]           = mp_info.system[i-1].free_ram;
+        mp["heap_fragmentation"] = mp_info.system[i-1].heap_fragmentation;
+      }
+    }
+
+  #endif
+
+  serializeJson(doc, response);
 }
 
 #ifdef MOD_JEEDOM

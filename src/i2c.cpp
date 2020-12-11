@@ -56,7 +56,7 @@ uint8_t i2c_scan()
   uint8_t nDevices = 0;
   unsigned long start = millis();
 
-  Log.verbose(F("Scanning I2C bus ...\r\n"));
+  Log.verbose(F("\r\nScanning I2C bus ...\r\n"));
 
   // slow down i2C speed in case of slow device
   // Sepecific ESP8266 to set I2C Speed

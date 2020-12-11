@@ -23,6 +23,8 @@
 // Include main project include file
 #include "remora.h"
 
+#define CFG_VERSION   23
+
 #define DEFAULT_HOSTNAME PSTR("remora")
 
 // Définir ici les identifiants de
@@ -49,7 +51,7 @@
   #define NB_VIRTUAL_FILS_PILOTES 8
 #endif
 
-#define DEFAULT_RELAIS_REVERSE false
+#define DEFAULT_RELAIS_REVERSE true
 
 #ifdef MOD_TELEINFO
   #define CFG_COMPTEUR_MODELE_SIZE 12
@@ -84,11 +86,13 @@
   #define CFG_MQTT_HOST_SIZE         32
   #define CFG_MQTT_USER_SIZE         32
   #define CFG_MQTT_PASSWORD_SIZE     32
-  #define CFG_MQTT_DEFAULT_ACTIVATED false
+  #define CFG_MQTT_DEFAULT_ACTIVATED true
   #define CFG_MQTT_DEFAULT_PROTOCOL  PSTR("mqtt")
-  #define CFG_MQTT_DEFAULT_AUTH      false
-  #define CFG_MQTT_DEFAULT_HOST      PSTR("mqtt.local")
+  #define CFG_MQTT_DEFAULT_AUTH      true
+  #define CFG_MQTT_DEFAULT_HOST      PSTR("192.168.2.20")
   #define CFG_MQTT_DEFAULT_PORT      1883
+  #define CFG_MQTT_DEFAULT_USER      PSTR("remora")
+  #define CFG_MQTT_DEFAULT_PASSWORD  PSTR("Remora1.")
 #endif
 
 #define DEFAULT_LED_BRIGHTNESS  50                // 50%
@@ -222,7 +226,7 @@ typedef struct
   bool relais_reverse;
   #ifndef MOD_MICRO
     _zone_fp fp[NB_REAL_FILS_PILOTES];
-    uint8_t filler_micro[256];
+    uint8_t filler_micro[287];
   #else
     _zone_fp fp[NB_REAL_FILS_PILOTES + NB_VIRTUAL_FILS_PILOTES];
     uint8_t filler[31];
@@ -261,11 +265,12 @@ typedef struct
   #endif
   #ifdef MOD_MQTT
     _mqtt  mqtt;                                      // MQTT configuration
-  #else                                               // 256 Bytes
-    uint8_t  filler_mqtt[256];
+  #else                                               // 128 Bytes
+    uint8_t  filler_mqtt[128];
   #endif
   _zones_fp zones_fp;                                 // 512 Bytes
-  uint8_t  filler_end[126];                           //Another filler in case we need more
+  uint16_t config_version;                            // Version actuel de la conf, permet de reset la conf en incrémentant la valeur
+  uint8_t  filler_end[252];                           //Another filler in case we need more
   uint16_t crc;
 } _Config;
 
@@ -312,7 +317,7 @@ typedef struct
   typedef struct {
     _mp_system system[NB_VIRTUAL_FILS_PILOTES];
     _mp_config config[NB_VIRTUAL_FILS_PILOTES];
-    bool isOnline[NB_VIRTUAL_FILS_PILOTES];
+    bool is_online[NB_VIRTUAL_FILS_PILOTES];
   } _mp_info;
 #endif
 
@@ -320,7 +325,9 @@ typedef struct
 // Exported variables/object instancied in main sketch
 // ===================================================
 extern _Config config;
-extern _mp_info mp_info;
+#ifdef MOD_MICRO
+  extern _mp_info mp_info;
+#endif
 
 #pragma pack(pop)
 
@@ -330,6 +337,7 @@ bool readConfig(bool clear_on_error=true);
 bool saveConfig(void);
 void resetConfig(void);
 void showConfig(void);
+void getSysJSONData(String & response);
 #ifdef MOD_JEEDOM
   String getFingerPrint(void);
 #endif

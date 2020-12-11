@@ -19,13 +19,14 @@
 #include "remora.h"
 
 #ifdef MOD_MQTT
-#define MQTT_TOPIC_BASE    "remora/"
+#define MQTT_TOPIC_BASE      "remora/"
+#define MQTT_HASS_BASE       "hass/"
 #ifdef MOD_MICRO
   #define MQTT_TOPIC_BASE_MC "micropilote/"
 #endif
 
 // Topic info
-#define MQTT_TOPIC_ONLINE    MQTT_TOPIC_BASE "online"    // remora/online 1 | retain = true
+#define MQTT_TOPIC_ONLINE    MQTT_TOPIC_BASE "online"    // remora/online {"id": "remora", "state": true} | retain = true
 #define MQTT_TOPIC_SYSTEM    MQTT_TOPIC_BASE "system"    // remora/system {"version": "2.0.0-beta", "board": "Remora v1.5", "ip": "192.168.1.31", "mac": "cd:cf:34:45:fc:4e", "rssi": "64", "freeheap": "2342", } | retain = true
 #define MQTT_TOPIC_RELAIS    MQTT_TOPIC_BASE "relais"    // remora/relais {"mode": "0", "status": "2"} | retain = false
 #define MQTT_TOPIC_FP        MQTT_TOPIC_BASE "fp"        // remora/fp {"fp3": "H", "fp4": "H", "fp5": "C", "fp7": "E"} | retain = false
@@ -37,6 +38,9 @@
 #define MQTT_TOPIC_FP_SET     MQTT_TOPIC_BASE "fp/set"     // remora/fp/set {"fp1": "C", "fp2": "H"}
 #define MQTT_TOPIC_RELAIS_GET MQTT_TOPIC_BASE "relais/get" // remora/relais/get
 #define MQTT_TOPIC_RELAIS_SET MQTT_TOPIC_BASE "relais/set" // remora/relais/set {"mode": "1", "status": "1"}
+
+
+#define MQTT_TOPIC_HASS_ONLINE MQTT_HASS_BASE "online"     // hass/online {"id": "hass", "state": true} | retain = true
 
 // Topic micro pilote commande
 #ifdef MOD_MICRO
@@ -80,7 +84,7 @@ void mqttRelaisPublish(void);
   void mqttTinfoPublish(void);
 #endif
 #ifdef MOD_MICRO
-  void mqttSendToMicroPilote(uint32_t id, char ordre);
+  void mqttSendFpToMicroPilote(uint32_t id, char ordre);
 #endif
 
 #endif // MOD_MQTT

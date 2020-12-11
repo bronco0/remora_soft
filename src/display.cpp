@@ -56,7 +56,7 @@ bool initDisplay(void) {
   ssd1306 = NULL;
   sh1106  = NULL;
 
-  Log.verbose(F("config & CFG_LCD ..."));
+  Log.verbose(F("\r\nconfig & CFG_LCD ..."));
 
   // Clear display configuration to force init
   // and OLED detection
@@ -230,6 +230,7 @@ void drawProgressBarVert(OLEDDisplay *display, uint16_t x, uint16_t y, uint16_t 
   }
 }
 
+#ifdef MOD_TELEINFO
 /* ======================================================================
 Function: drawFrameTinfo
 Purpose : Fonction d'affichage de la téléinfo
@@ -240,7 +241,7 @@ Input   : Pointeur sur l'instance de l'afficheur
 Output  : -
 Comments: -
 ====================================================================== */
-#ifdef MOD_TELEINFO
+
 void drawFrameTinfo(OLEDDisplay *oled, OLEDDisplayUiState *state, int16_t x, int16_t y) {
   oled->clear();
   oled->setFont(Roboto_Condensed_Bold_Bold_16);
@@ -299,7 +300,6 @@ void drawFrameTinfo(OLEDDisplay *oled, OLEDDisplayUiState *state, int16_t x, int
     // Bargraphe de puissance
     drawProgressBarVert(oled, 114, 6, 12, 40, percent);
   }
-  
 }
 #endif
 
