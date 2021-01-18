@@ -34,7 +34,7 @@
 #define MQTT_TOPPIC_REMORA_ONLINE MQTT_TOPIC_REMORA_BASE "online"
 
 // Last Stand Will Message to be posted when Remora disconnect( /online 0 )
-#define MQTT_TOPIC_LSW MQTT_TOPIC_BASE "online"
+#define MQTT_TOPIC_LSW MQTT_TOPIC_ONLINE
 
 // Set keep alive in sec. Will also be used when Remora disconnect from broker to spawn lws message after it timeouts.
 #define MQTT_KEEP_ALIVE 10

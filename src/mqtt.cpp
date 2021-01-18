@@ -324,7 +324,7 @@ void initMqtt(void) {
 
 
   String message;
-  message.reserve(50);
+  message.reserve(200);
   const size_t capacity = JSON_OBJECT_SIZE(2) + 50;
   StaticJsonDocument<capacity> doc;
 
